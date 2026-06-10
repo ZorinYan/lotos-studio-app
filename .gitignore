@@ -25,6 +25,7 @@ personal_acc_lotos/server/.env
 
 # User phones and sessions
 lotos_vk_bot/data/users.json
+personal_acc_lotos/server/data/users.json
 
 # IDE / OS
 .idea/

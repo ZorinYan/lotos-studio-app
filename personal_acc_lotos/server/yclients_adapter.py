@@ -1,14 +1,11 @@
-"""Адаптер к YClientsClient из lotos_vk_bot."""
+"""Адаптер к локальному YClientsClient (server/lib)."""
 
-import sys
 from dataclasses import dataclass
-from pathlib import Path
 
+from _lib_path import ensure_lib_path
 from miniapp_config import MiniAppConfig, load_config
 
-BOT_ROOT = Path(__file__).resolve().parent.parent.parent / "lotos_vk_bot"
-if str(BOT_ROOT) not in sys.path:
-    sys.path.insert(0, str(BOT_ROOT))
+ensure_lib_path()
 
 from yclients import YClientsClient, YClientsError, YClientsPermissionError  # noqa: E402
 

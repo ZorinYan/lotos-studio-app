@@ -4,13 +4,10 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-_BOT_ENV = Path(__file__).resolve().parent.parent.parent / "lotos_vk_bot" / ".env"
 _LOCAL_ENV = Path(__file__).resolve().parent / ".env"
 
-if _BOT_ENV.exists():
-    load_dotenv(_BOT_ENV)
 if _LOCAL_ENV.exists():
-    load_dotenv(_LOCAL_ENV, override=True)
+    load_dotenv(_LOCAL_ENV)
 
 
 @dataclass(frozen=True)

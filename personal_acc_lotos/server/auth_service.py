@@ -1,10 +1,9 @@
-import sys
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Literal
 
 import requests
 
+from _lib_path import ensure_lib_path
 from miniapp_config import MiniAppConfig
 from yclients_adapter import (
     YClientsError,
@@ -12,9 +11,7 @@ from yclients_adapter import (
     create_yclients_client,
 )  # create_yclients_client used in get_auth_status backfill
 
-BOT_ROOT = Path(__file__).resolve().parent.parent.parent / "lotos_vk_bot"
-if str(BOT_ROOT) not in sys.path:
-    sys.path.insert(0, str(BOT_ROOT))
+ensure_lib_path()
 
 from yclients.formatters_cabinet import _client_name  # noqa: E402
 from utils.client_name import client_has_surname, client_names_match  # noqa: E402

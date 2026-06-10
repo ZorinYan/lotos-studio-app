@@ -51,6 +51,15 @@ function App() {
     if (!ready || !vkUser) return
 
     let cancelled = false
+    const bootTimeoutId = window.setTimeout(() => {
+      if (!cancelled) {
+        setBootError(
+          'Сервер долго не отвечает. На Render Free первый запуск может занять до минуты — обновите страницу.',
+        )
+        setScreen('auth')
+      }
+    }, 30_000)
+
     void (async () => {
       try {
         await checkSession(vkUser.id)
@@ -59,11 +68,14 @@ function App() {
           setBootError(err instanceof ApiError ? err.message : 'Не удалось загрузить приложение')
           setScreen('auth')
         }
+      } finally {
+        window.clearTimeout(bootTimeoutId)
       }
     })()
 
     return () => {
       cancelled = true
+      window.clearTimeout(bootTimeoutId)
     }
   }, [ready, vkUser, checkSession])
 

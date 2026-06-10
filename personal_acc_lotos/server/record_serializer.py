@@ -1,13 +1,10 @@
 import re
-import sys
 from datetime import datetime
-from pathlib import Path
 
-BOT_ROOT = Path(__file__).resolve().parent.parent.parent / "lotos_vk_bot"
-if str(BOT_ROOT) not in sys.path:
-    sys.path.insert(0, str(BOT_ROOT))
-
+from _lib_path import ensure_lib_path
 from calendar_utils import event_window
+
+ensure_lib_path()
 from utils.dates import format_date_short, format_datetime_short  # noqa: E402
 from yclients.client import YClientsClient  # noqa: E402
 

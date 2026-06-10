@@ -1,8 +1,6 @@
-import sys
-from pathlib import Path
-
 import requests
 
+from _lib_path import ensure_lib_path
 from abonement_serializer import serialize_abonement
 from home_alerts import build_home_alerts
 from miniapp_config import MiniAppConfig
@@ -14,9 +12,7 @@ from yclients_adapter import (
     create_yclients_client,
 )
 
-BOT_ROOT = Path(__file__).resolve().parent.parent.parent / "lotos_vk_bot"
-if str(BOT_ROOT) not in sys.path:
-    sys.path.insert(0, str(BOT_ROOT))
+ensure_lib_path()
 
 from services.cabinet import CabinetService  # noqa: E402
 from utils import storage  # noqa: E402

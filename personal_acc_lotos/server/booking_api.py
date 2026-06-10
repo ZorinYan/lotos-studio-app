@@ -1,9 +1,8 @@
-import sys
 from datetime import date, timedelta
-from pathlib import Path
 
 import requests
 
+from _lib_path import ensure_lib_path
 from miniapp_config import MiniAppConfig
 from schedule_api import _serialize_activity
 from yclients_adapter import (
@@ -12,9 +11,7 @@ from yclients_adapter import (
     create_yclients_client,
 )
 
-BOT_ROOT = Path(__file__).resolve().parent.parent.parent / "lotos_vk_bot"
-if str(BOT_ROOT) not in sys.path:
-    sys.path.insert(0, str(BOT_ROOT))
+ensure_lib_path()
 
 from utils import storage  # noqa: E402
 from utils.phone import format_phone_display  # noqa: E402

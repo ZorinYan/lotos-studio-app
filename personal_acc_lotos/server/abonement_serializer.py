@@ -1,12 +1,10 @@
 """Сериализация абонементов YClients для мини-приложения."""
 
 import re
-import sys
-from pathlib import Path
 
-BOT_ROOT = Path(__file__).resolve().parent.parent.parent / "lotos_vk_bot"
-if str(BOT_ROOT) not in sys.path:
-    sys.path.insert(0, str(BOT_ROOT))
+from _lib_path import ensure_lib_path
+
+ensure_lib_path()
 
 from yclients.abonement_utils import abonement_balance_count, abonement_expiry_date
 from yclients.formatters import status_icon

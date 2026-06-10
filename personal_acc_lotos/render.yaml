@@ -1,14 +1,22 @@
-# Деплой API мини-приложения на Render (бесплатный тариф)
-# Dashboard → New → Blueprint → подключите репозиторий GitHub
+# API для мини-приложения (бесплатный Web Service на Render).
+# Фронтенд — на Vercel (см. DEPLOY.md).
+#
+# Если репозиторий = только папка personal_acc_lotos: rootDir = server
+# Если монорепо: rootDir = personal_acc_lotos/server
 services:
   - type: web
-    name: lotos-miniapp-api
+    name: lotos-api
     runtime: python
-    rootDir: personal_acc_lotos/server
+    plan: free
+    region: frankfurt
+    rootDir: server
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
+    autoDeploy: true
     envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.0"
       - key: YCLIENTS_PARTNER_TOKEN
         sync: false
       - key: YCLIENTS_USER_TOKEN
