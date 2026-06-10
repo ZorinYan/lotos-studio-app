@@ -1,0 +1,112 @@
+.record-card {
+  display: flex;
+  gap: var(--lotos-space-md);
+  padding: var(--lotos-space-md);
+  background: var(--lotos-surface);
+  border: 1px solid var(--lotos-border);
+  border-radius: var(--lotos-radius-sm);
+}
+
+.record-card--interactive {
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.record-card--interactive:hover {
+  border-color: var(--lotos-border-strong);
+  box-shadow: var(--lotos-shadow-soft);
+}
+
+.record-card--interactive:active {
+  transform: scale(0.99);
+}
+
+.record-card--past {
+  opacity: 0.92;
+}
+
+.record-card__arrow {
+  flex-shrink: 0;
+  align-self: center;
+  color: var(--lotos-text-muted);
+  font-size: 18px;
+}
+
+.record-card__time-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 64px;
+  padding: 8px 6px;
+  background: var(--lotos-blush);
+  border-radius: var(--lotos-radius-sm);
+  text-align: center;
+}
+
+.record-card__time {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--lotos-plum);
+  line-height: 1.2;
+}
+
+.record-card__date {
+  margin-top: 4px;
+  font-size: 10px;
+  line-height: 1.25;
+  color: var(--lotos-text-muted);
+}
+
+.record-card__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.record-card__service {
+  margin: 0 0 4px;
+  font-size: var(--lotos-body);
+  font-weight: 600;
+  color: var(--lotos-text);
+  line-height: 1.35;
+}
+
+.record-card__staff {
+  margin: 0 0 8px;
+  font-size: var(--lotos-caption);
+  color: var(--lotos-text-secondary);
+}
+
+.record-card__badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: var(--lotos-radius-pill);
+}
+
+.record-card__badge--waiting {
+  background: rgba(184, 137, 58, 0.12);
+  color: var(--lotos-warning);
+}
+
+.record-card__badge--confirmed {
+  background: rgba(107, 127, 154, 0.12);
+  color: var(--lotos-info);
+}
+
+.record-card__badge--done {
+  background: rgba(90, 125, 98, 0.12);
+  color: var(--lotos-success);
+}
+
+.record-card__badge--missed {
+  background: rgba(74, 44, 61, 0.08);
+  color: var(--lotos-text-muted);
+}
+
+.record-card__badge--neutral {
+  background: var(--lotos-blush);
+  color: var(--lotos-text-secondary);
+}

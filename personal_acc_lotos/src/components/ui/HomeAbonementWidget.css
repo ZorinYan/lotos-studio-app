@@ -1,0 +1,125 @@
+.home-abonement {
+  padding: var(--lotos-space-lg);
+  margin-bottom: var(--lotos-space-md);
+  cursor: pointer;
+  transition: box-shadow 0.2s ease, transform 0.15s ease;
+  background: linear-gradient(145deg, #fffdfb 0%, #f8f0e8 100%);
+}
+
+.home-abonement:active {
+  transform: scale(0.99);
+}
+
+.home-abonement--empty {
+  text-align: center;
+}
+
+.home-abonement__header {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--lotos-space-md);
+  align-items: flex-start;
+  margin-bottom: var(--lotos-space-md);
+}
+
+.home-abonement__eyebrow {
+  margin: 0 0 6px;
+  font-size: var(--lotos-label);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--lotos-rose);
+}
+
+.home-abonement__title {
+  margin: 0 0 8px;
+  font-family: var(--lotos-font-display);
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 1.15;
+  color: var(--lotos-text);
+}
+
+.home-abonement__status {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: var(--lotos-radius-pill);
+}
+
+.home-abonement__status--active {
+  background: rgba(90, 125, 98, 0.12);
+  color: var(--lotos-success);
+}
+
+.home-abonement__status--frozen {
+  background: rgba(107, 127, 154, 0.12);
+  color: var(--lotos-info);
+}
+
+.home-abonement__status--expired {
+  background: rgba(74, 44, 61, 0.08);
+  color: var(--lotos-text-muted);
+}
+
+.home-abonement__status--neutral {
+  background: var(--lotos-blush);
+  color: var(--lotos-text-secondary);
+}
+
+.home-abonement__balance {
+  flex-shrink: 0;
+  min-width: 72px;
+  text-align: center;
+  padding: 10px 12px;
+  border-radius: var(--lotos-radius-sm);
+  background: linear-gradient(135deg, var(--lotos-plum) 0%, var(--lotos-plum-soft) 100%);
+  color: var(--lotos-text-on-plum);
+  box-shadow: var(--lotos-shadow-plum);
+}
+
+.home-abonement__balance-num {
+  display: block;
+  font-family: var(--lotos-font-display);
+  font-size: 32px;
+  line-height: 1;
+  font-weight: 600;
+}
+
+.home-abonement__balance-label {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  line-height: 1.2;
+  opacity: 0.9;
+}
+
+.home-abonement__services {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.home-abonement__service {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: var(--lotos-caption);
+  color: var(--lotos-text-secondary);
+}
+
+.home-abonement__service strong {
+  color: var(--lotos-plum);
+}
+
+.home-abonement__expiry {
+  margin: 0;
+  font-size: var(--lotos-caption);
+  color: var(--lotos-text-muted);
+}
+
+.home-abonement__hint {
+  margin: 0;
+  font-size: var(--lotos-caption);
+  color: var(--lotos-text-muted);
+}

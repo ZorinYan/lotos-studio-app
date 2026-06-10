@@ -1,0 +1,57 @@
+/**
+ * Lotos Studio — design tokens
+ * Используйте эти переменные во всех новых экранах и компонентах.
+ */
+:root {
+  /* Brand */
+  --lotos-plum: #4a2c3d;
+  --lotos-plum-soft: #6b4558;
+  --lotos-rose: #c4a882;
+  --lotos-rose-light: #e8d9c4;
+  --lotos-blush: #f3ebe3;
+  --lotos-cream: #faf7f3;
+  --lotos-sage: #7a8f7e;
+
+  /* Surfaces */
+  --lotos-bg: #faf7f3;
+  --lotos-surface: #ffffff;
+  --lotos-surface-elevated: #fffdfb;
+  --lotos-border: rgba(74, 44, 61, 0.08);
+  --lotos-border-strong: rgba(74, 44, 61, 0.14);
+
+  /* Text */
+  --lotos-text: #2a1f24;
+  --lotos-text-secondary: #6e5d64;
+  --lotos-text-muted: #9a8b91;
+  --lotos-text-on-plum: #faf7f3;
+
+  /* Semantic */
+  --lotos-success: #5a7d62;
+  --lotos-warning: #b8893a;
+  --lotos-info: #6b7f9a;
+
+  /* Radius & shadow */
+  --lotos-radius-sm: 12px;
+  --lotos-radius-md: 18px;
+  --lotos-radius-lg: 24px;
+  --lotos-radius-pill: 999px;
+  --lotos-shadow-sm: 0 2px 12px rgba(42, 31, 36, 0.05);
+  --lotos-shadow-md: 0 8px 32px rgba(42, 31, 36, 0.08);
+  --lotos-shadow-plum: 0 12px 40px rgba(74, 44, 61, 0.18);
+
+  /* Spacing */
+  --lotos-space-xs: 6px;
+  --lotos-space-sm: 10px;
+  --lotos-space-md: 16px;
+  --lotos-space-lg: 24px;
+  --lotos-space-xl: 32px;
+
+  /* Typography — Cormorant Garamond (заголовки) + Manrope (текст) */
+  --lotos-font-display: 'Cormorant Garamond', 'Georgia', 'Times New Roman', serif;
+  --lotos-font-body: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --lotos-label: 11px;
+  --lotos-caption: 13px;
+  --lotos-body: 15px;
+  --lotos-title: 22px;
+  --lotos-display: 32px;
+}

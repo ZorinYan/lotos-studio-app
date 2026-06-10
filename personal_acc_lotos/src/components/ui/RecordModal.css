@@ -1,0 +1,224 @@
+.record-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.record-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  border: none;
+  background: rgba(42, 31, 36, 0.45);
+  backdrop-filter: blur(4px);
+  cursor: pointer;
+}
+
+.record-modal__sheet {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  max-height: 88vh;
+  overflow-y: auto;
+  border-radius: var(--lotos-radius-lg) var(--lotos-radius-lg) 0 0;
+  padding: 12px var(--lotos-space-lg) var(--lotos-space-xl);
+  animation: record-modal-slide 0.28s ease-out;
+}
+
+@keyframes record-modal-slide {
+  from {
+    transform: translateY(100%);
+    opacity: 0.6;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.record-modal__handle {
+  width: 40px;
+  height: 4px;
+  margin: 0 auto 12px;
+  border-radius: var(--lotos-radius-pill);
+  background: var(--lotos-border-strong);
+}
+
+.record-modal__close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: var(--lotos-blush);
+  color: var(--lotos-text-secondary);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.record-modal__header {
+  margin-bottom: var(--lotos-space-lg);
+  padding-right: 36px;
+}
+
+.record-modal__eyebrow {
+  margin: 0 0 6px;
+  font-size: var(--lotos-label);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--lotos-rose);
+}
+
+.record-modal__title {
+  margin: 0 0 10px;
+  font-family: var(--lotos-font-display);
+  font-size: 28px;
+  font-weight: 500;
+  line-height: 1.15;
+  color: var(--lotos-text);
+}
+
+.record-modal__status {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: var(--lotos-radius-pill);
+}
+
+.record-modal__status--waiting {
+  background: rgba(184, 137, 58, 0.12);
+  color: var(--lotos-warning);
+}
+
+.record-modal__status--confirmed {
+  background: rgba(107, 127, 154, 0.12);
+  color: var(--lotos-info);
+}
+
+.record-modal__status--done {
+  background: rgba(90, 125, 98, 0.12);
+  color: var(--lotos-success);
+}
+
+.record-modal__status--missed {
+  background: rgba(74, 44, 61, 0.08);
+  color: var(--lotos-text-muted);
+}
+
+.record-modal__status--neutral {
+  background: var(--lotos-blush);
+  color: var(--lotos-text-secondary);
+}
+
+.record-modal__section {
+  margin-bottom: var(--lotos-space-lg);
+}
+
+.record-modal__details {
+  margin: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.record-modal__detail {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--lotos-border);
+}
+
+.record-modal__detail:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.record-modal__detail dt {
+  margin: 0;
+  font-size: var(--lotos-caption);
+  color: var(--lotos-text-muted);
+}
+
+.record-modal__detail dd {
+  margin: 0;
+  font-size: var(--lotos-caption);
+  font-weight: 600;
+  color: var(--lotos-text);
+  text-align: right;
+}
+
+.record-modal__comment {
+  margin: 0;
+  font-size: var(--lotos-body);
+  line-height: 1.5;
+  color: var(--lotos-text-secondary);
+}
+
+.record-modal__confirm-text {
+  margin: 0 0 var(--lotos-space-lg);
+  font-size: var(--lotos-body);
+  line-height: 1.5;
+  color: var(--lotos-text-secondary);
+}
+
+.record-modal__actions {
+  display: flex;
+  gap: 10px;
+}
+
+.record-modal__actions--stacked {
+  flex-direction: column;
+}
+
+.record-modal__actions .lotos-btn {
+  flex: 1;
+}
+
+.record-modal__hint {
+  margin: 0 0 var(--lotos-space-md);
+  font-size: var(--lotos-caption);
+  line-height: 1.5;
+  color: var(--lotos-text-secondary);
+  text-align: center;
+}
+
+.record-modal__success {
+  padding-top: var(--lotos-space-sm);
+  text-align: center;
+}
+
+.record-modal__success-icon {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto var(--lotos-space-md);
+  border-radius: 50%;
+  background: rgba(90, 125, 98, 0.14);
+  color: var(--lotos-success);
+  font-size: 28px;
+  line-height: 56px;
+}
+
+.record-modal__success-title {
+  margin: 0 0 8px;
+  font-family: var(--lotos-font-display);
+  font-size: 26px;
+  font-weight: 500;
+  color: var(--lotos-text);
+}
+
+.record-modal__success-text {
+  margin: 0 0 var(--lotos-space-lg);
+  font-size: var(--lotos-body);
+  color: var(--lotos-text-secondary);
+}
+
+.record-modal__success-summary {
+  margin: 0 0 var(--lotos-space-md);
+  text-align: left;
+}

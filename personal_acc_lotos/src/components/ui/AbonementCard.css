@@ -1,0 +1,155 @@
+.abonement-card {
+  padding: var(--lotos-space-lg);
+  background: linear-gradient(160deg, var(--lotos-surface-elevated) 0%, var(--lotos-blush) 100%);
+  border: 1px solid var(--lotos-border);
+  border-radius: var(--lotos-radius-md);
+  box-shadow: var(--lotos-shadow-sm);
+}
+
+.abonement-card--clickable {
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.abonement-card--clickable:active {
+  transform: scale(0.99);
+  box-shadow: var(--lotos-shadow-md);
+}
+
+.abonement-card__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--lotos-space-md);
+  margin-bottom: var(--lotos-space-md);
+}
+
+.abonement-card__title {
+  margin: 0 0 8px;
+  font-family: var(--lotos-font-display);
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--lotos-text);
+  line-height: 1.3;
+}
+
+.abonement-card__status {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 4px 10px;
+  border-radius: var(--lotos-radius-pill);
+}
+
+.abonement-card__status--active {
+  background: rgba(90, 125, 98, 0.12);
+  color: var(--lotos-success);
+}
+
+.abonement-card__status--frozen {
+  background: rgba(107, 127, 154, 0.12);
+  color: var(--lotos-info);
+}
+
+.abonement-card__status--expired {
+  background: rgba(184, 137, 58, 0.12);
+  color: var(--lotos-warning);
+}
+
+.abonement-card__status--neutral {
+  background: var(--lotos-blush);
+  color: var(--lotos-text-secondary);
+}
+
+.abonement-card__balance {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  min-width: 72px;
+  padding: 10px 12px;
+  background: var(--lotos-surface);
+  border: 1px solid var(--lotos-border);
+  border-radius: var(--lotos-radius-sm);
+  text-align: center;
+}
+
+.abonement-card__balance-num {
+  font-family: var(--lotos-font-display);
+  font-size: 36px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--lotos-plum);
+  letter-spacing: 0.02em;
+}
+
+.abonement-card__balance-label {
+  margin-top: 4px;
+  font-size: 11px;
+  line-height: 1.25;
+  color: var(--lotos-text-muted);
+  text-transform: lowercase;
+}
+
+.abonement-card__services-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: var(--lotos-space-md);
+}
+
+.abonement-card__service-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: var(--lotos-radius-pill);
+  background: var(--lotos-surface);
+  border: 1px solid var(--lotos-border);
+  max-width: 100%;
+}
+
+.abonement-card__service-name {
+  font-size: 12px;
+  color: var(--lotos-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.abonement-card__service-left {
+  font-family: var(--lotos-font-display);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--lotos-plum);
+  flex-shrink: 0;
+}
+
+.abonement-card__more {
+  align-self: center;
+  font-size: 12px;
+  color: var(--lotos-text-muted);
+}
+
+.abonement-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: var(--lotos-space-sm);
+  border-top: 1px solid var(--lotos-border);
+}
+
+.abonement-card__expiry {
+  font-size: var(--lotos-caption);
+  color: var(--lotos-text-secondary);
+}
+
+.abonement-card__expiry--muted {
+  color: var(--lotos-rose);
+}
+
+.abonement-card__arrow {
+  font-size: 18px;
+  color: var(--lotos-rose);
+}

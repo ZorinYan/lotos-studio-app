@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# Node / frontend build
+node_modules/
+dist/
+dist-ssr/
+
+# Secrets — never commit
+.env
+.env.local
+.env.production
+.env.*.local
+lotos_vk_bot/.env
+personal_acc_lotos/.env
+personal_acc_lotos/server/.env
+
+# Keep examples
+!.env.example
+!**/.env.example
+
+# User phones and sessions
+lotos_vk_bot/data/users.json
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.log

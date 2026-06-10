@@ -1,0 +1,104 @@
+.records-page {
+  min-height: 100vh;
+  background: var(--lotos-bg);
+}
+
+.records-page__content {
+  padding: 0 var(--lotos-space-md) var(--lotos-space-xl);
+}
+
+.records-hero {
+  text-align: center;
+  margin-bottom: var(--lotos-space-lg);
+  padding-top: var(--lotos-space-sm);
+}
+
+.records-hero__eyebrow {
+  margin: 0 0 8px;
+  font-size: var(--lotos-label);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--lotos-rose);
+}
+
+.records-hero__title {
+  margin: 0 0 6px;
+  font-family: var(--lotos-font-display);
+  font-size: 32px;
+  font-weight: 500;
+  line-height: 1.1;
+  color: var(--lotos-text);
+}
+
+.records-hero__subtitle {
+  margin: 0;
+  font-size: var(--lotos-caption);
+  color: var(--lotos-text-muted);
+}
+
+.records-filters {
+  display: flex;
+  gap: 8px;
+  margin-bottom: var(--lotos-space-lg);
+}
+
+.records-filters__chip {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid var(--lotos-border);
+  border-radius: var(--lotos-radius-pill);
+  background: var(--lotos-surface);
+  color: var(--lotos-text-secondary);
+  font-family: var(--lotos-font-body);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.records-filters__chip--active {
+  background: linear-gradient(135deg, var(--lotos-plum) 0%, var(--lotos-plum-soft) 100%);
+  border-color: transparent;
+  color: var(--lotos-text-on-plum);
+  box-shadow: var(--lotos-shadow-plum);
+}
+
+.records-filters__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--lotos-radius-pill);
+  background: rgba(255, 255, 255, 0.18);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.records-filters__chip:not(.records-filters__chip--active) .records-filters__count {
+  background: var(--lotos-blush);
+  color: var(--lotos-text-muted);
+}
+
+.records-page__loading {
+  display: flex;
+  justify-content: center;
+  padding: 48px 0;
+}
+
+.records-page__list {
+  display: grid;
+  gap: 10px;
+  margin-bottom: var(--lotos-space-lg);
+}
+
+.records-page__empty-title {
+  margin: 0 0 8px;
+  font-weight: 600;
+  color: var(--lotos-text);
+}

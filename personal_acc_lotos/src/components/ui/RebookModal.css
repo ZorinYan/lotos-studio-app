@@ -1,0 +1,95 @@
+.rebook-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.rebook-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  border: none;
+  background: rgba(42, 31, 36, 0.45);
+  backdrop-filter: blur(4px);
+  cursor: pointer;
+}
+
+.rebook-modal__sheet {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  max-height: 88vh;
+  overflow-y: auto;
+  border-radius: var(--lotos-radius-lg) var(--lotos-radius-lg) 0 0;
+  padding: 12px var(--lotos-space-lg) var(--lotos-space-xl);
+  animation: rebook-modal-slide 0.28s ease-out;
+}
+
+@keyframes rebook-modal-slide {
+  from {
+    transform: translateY(100%);
+    opacity: 0.6;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.rebook-modal__handle {
+  width: 40px;
+  height: 4px;
+  margin: 0 auto 12px;
+  border-radius: var(--lotos-radius-pill);
+  background: var(--lotos-border-strong);
+}
+
+.rebook-modal__close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: var(--lotos-blush);
+  color: var(--lotos-text-secondary);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.rebook-modal__header {
+  margin-bottom: var(--lotos-space-lg);
+  padding-right: 36px;
+}
+
+.rebook-modal__eyebrow {
+  margin: 0 0 6px;
+  font-size: var(--lotos-label);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--lotos-rose);
+}
+
+.rebook-modal__title {
+  margin: 0 0 8px;
+  font-family: var(--lotos-font-display);
+  font-size: 28px;
+  font-weight: 500;
+  color: var(--lotos-text);
+}
+
+.rebook-modal__subtitle {
+  margin: 0;
+  font-size: var(--lotos-caption);
+  color: var(--lotos-text-secondary);
+  line-height: 1.45;
+}
+
+.rebook-modal__list {
+  display: grid;
+  gap: 10px;
+}

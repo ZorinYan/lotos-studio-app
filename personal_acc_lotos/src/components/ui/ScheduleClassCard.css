@@ -1,0 +1,106 @@
+.schedule-card {
+  display: flex;
+  align-items: stretch;
+  gap: var(--lotos-space-md);
+  padding: var(--lotos-space-md);
+  background: var(--lotos-surface);
+  border: 1px solid var(--lotos-border);
+  border-radius: var(--lotos-radius-md);
+  box-shadow: var(--lotos-shadow-sm);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.schedule-card:active {
+  transform: scale(0.99);
+  box-shadow: var(--lotos-shadow-md);
+}
+
+.schedule-card--full {
+  opacity: 0.72;
+  background: linear-gradient(160deg, #f8f5f2 0%, #f0ebe6 100%);
+}
+
+.schedule-card__time-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 68px;
+  padding: 10px 8px;
+  border-radius: var(--lotos-radius-sm);
+  background: var(--lotos-blush);
+}
+
+.schedule-card--full .schedule-card__time-col {
+  background: rgba(74, 44, 61, 0.06);
+}
+
+.schedule-card__time {
+  font-family: var(--lotos-font-display);
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--lotos-plum);
+  line-height: 1.1;
+}
+
+.schedule-card__duration {
+  margin-top: 4px;
+  font-size: 10px;
+  color: var(--lotos-text-muted);
+}
+
+.schedule-card__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.schedule-card__title {
+  margin: 0 0 4px;
+  font-family: var(--lotos-font-display);
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 1.25;
+  color: var(--lotos-text);
+}
+
+.schedule-card__trainer {
+  margin: 0 0 8px;
+  font-size: var(--lotos-caption);
+  color: var(--lotos-text-secondary);
+}
+
+.schedule-card__spots {
+  display: inline-flex;
+  align-self: flex-start;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  padding: 4px 10px;
+  border-radius: var(--lotos-radius-pill);
+}
+
+.schedule-card__spots--free {
+  background: rgba(90, 125, 98, 0.12);
+  color: var(--lotos-success);
+}
+
+.schedule-card__spots--full {
+  background: rgba(74, 44, 61, 0.08);
+  color: var(--lotos-text-muted);
+}
+
+.schedule-card__arrow {
+  align-self: center;
+  font-size: 18px;
+  color: var(--lotos-rose);
+  flex-shrink: 0;
+}
+
+.schedule-card--full .schedule-card__arrow {
+  opacity: 0.4;
+}

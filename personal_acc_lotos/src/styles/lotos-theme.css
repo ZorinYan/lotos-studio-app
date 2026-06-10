@@ -1,0 +1,114 @@
+@import './tokens.css';
+
+.lotos-app {
+  --vkui--font_family: var(--lotos-font-body);
+  --vkui--color_background: var(--lotos-bg);
+  --vkui--color_background_content: var(--lotos-surface);
+  --vkui--color_text_primary: var(--lotos-text);
+  --vkui--color_text_secondary: var(--lotos-text-secondary);
+  --vkui--color_text_tertiary: var(--lotos-text-muted);
+  --vkui--color_separator_primary: var(--lotos-border);
+  --vkui--color_stroke_accent: var(--lotos-rose);
+  --vkui--color_background_accent: var(--lotos-plum);
+  --vkui--color_text_accent: var(--lotos-plum);
+  --vkui--color_field_background: var(--lotos-blush);
+  --vkui--color_field_background--hover: #ebe0d6;
+  --vkui--color_field_background--active: #e2d5c9;
+  --vkui--color_field_border_alpha: var(--lotos-border-strong);
+  --vkui--color_field_border_alpha--hover: rgba(74, 44, 61, 0.22);
+}
+
+body {
+  background: var(--lotos-bg);
+  color: var(--lotos-text);
+  font-family: var(--lotos-font-body);
+  font-weight: 500;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Shared primitives */
+.lotos-display {
+  font-family: var(--lotos-font-display);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  line-height: 1.15;
+}
+
+.lotos-section-title {
+  margin: 0 0 var(--lotos-space-md);
+  font-family: var(--lotos-font-body);
+  font-size: var(--lotos-label);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--lotos-text-muted);
+}
+
+.lotos-card {
+  background: var(--lotos-surface);
+  border: 1px solid var(--lotos-border);
+  border-radius: var(--lotos-radius-md);
+  box-shadow: var(--lotos-shadow-sm);
+}
+
+.lotos-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: none;
+  border-radius: var(--lotos-radius-pill);
+  font-family: var(--lotos-font-body);
+  font-size: var(--lotos-body);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  padding: 14px 24px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+}
+
+.lotos-btn:active {
+  transform: scale(0.98);
+}
+
+.lotos-btn--primary {
+  background: linear-gradient(135deg, var(--lotos-plum) 0%, var(--lotos-plum-soft) 100%);
+  color: var(--lotos-text-on-plum);
+  box-shadow: var(--lotos-shadow-plum);
+}
+
+.lotos-btn--secondary {
+  background: var(--lotos-surface);
+  color: var(--lotos-plum);
+  border: 1px solid var(--lotos-border-strong);
+}
+
+.lotos-btn--ghost {
+  background: transparent;
+  color: var(--lotos-text-secondary);
+}
+
+.lotos-btn--danger {
+  background: linear-gradient(135deg, #8b3d52 0%, #a64d63 100%);
+  color: #fff;
+  box-shadow: 0 8px 24px rgba(139, 61, 82, 0.28);
+}
+
+.lotos-btn--stretched {
+  width: 100%;
+}
+
+.lotos-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.lotos-empty {
+  padding: var(--lotos-space-lg);
+  text-align: center;
+  color: var(--lotos-text-muted);
+  font-size: var(--lotos-caption);
+  line-height: 1.5;
+}

@@ -1,0 +1,201 @@
+.home-page {
+  min-height: 100vh;
+  background: var(--lotos-bg);
+}
+
+.home-page__content {
+  padding: var(--lotos-space-lg) var(--lotos-space-md) var(--lotos-space-xl);
+}
+
+.home-page__loading {
+  display: flex;
+  justify-content: center;
+  padding: 24px 0 8px;
+}
+
+.home-rebook {
+  display: flex;
+  align-items: center;
+  gap: var(--lotos-space-md);
+  padding: var(--lotos-space-lg);
+  margin-bottom: var(--lotos-space-md);
+}
+
+.home-rebook__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.home-rebook__eyebrow {
+  margin: 0 0 6px;
+  font-size: var(--lotos-label);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--lotos-rose);
+}
+
+.home-rebook__title {
+  margin: 0 0 6px;
+  font-family: var(--lotos-font-display);
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--lotos-text);
+}
+
+.home-rebook__text {
+  margin: 0;
+  font-size: var(--lotos-caption);
+  color: var(--lotos-text-secondary);
+  line-height: 1.45;
+}
+
+.home-rebook__btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.home-hero {
+  position: relative;
+  text-align: center;
+  margin-bottom: var(--lotos-space-xl);
+  padding: var(--lotos-space-lg) 0;
+}
+
+.home-hero__orb {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(196, 168, 130, 0.2) 0%, transparent 65%);
+  pointer-events: none;
+}
+
+.home-hero__eyebrow {
+  position: relative;
+  margin: 0 0 12px;
+  font-size: var(--lotos-label);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--lotos-rose);
+}
+
+.home-hero__greeting {
+  position: relative;
+  margin: 0 0 8px;
+  font-family: var(--lotos-font-display);
+  font-size: 36px;
+  font-weight: 500;
+  line-height: 1.1;
+  color: var(--lotos-text);
+  letter-spacing: 0.01em;
+}
+
+.home-hero__studio {
+  position: relative;
+  margin: 0 0 16px;
+  font-size: var(--lotos-body);
+  color: var(--lotos-text-secondary);
+}
+
+.home-hero__badge {
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: var(--lotos-radius-pill);
+  background: var(--lotos-blush);
+  border: 1px solid var(--lotos-border);
+  font-size: var(--lotos-caption);
+  color: var(--lotos-text-secondary);
+}
+
+.home-feature {
+  display: flex;
+  align-items: center;
+  gap: var(--lotos-space-md);
+  padding: var(--lotos-space-lg);
+  margin-bottom: var(--lotos-space-sm);
+  cursor: pointer;
+  transition: box-shadow 0.2s ease, transform 0.15s ease;
+}
+
+.home-feature:active {
+  transform: scale(0.99);
+  box-shadow: var(--lotos-shadow-md);
+}
+
+.home-feature__icon-wrap {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--lotos-plum) 0%, var(--lotos-plum-soft) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: var(--lotos-shadow-plum);
+}
+
+.home-feature__icon-wrap--schedule {
+  background: linear-gradient(135deg, #5a4a3d 0%, var(--lotos-rose) 100%);
+  box-shadow: 0 8px 24px rgba(196, 168, 130, 0.35);
+}
+
+.home-feature__icon-wrap--records {
+  background: linear-gradient(135deg, #4a2c3d 0%, #7d5a6a 100%);
+  box-shadow: 0 8px 24px rgba(74, 44, 61, 0.28);
+}
+
+.home-feature__icon {
+  color: var(--lotos-rose-light);
+  font-size: 18px;
+}
+
+.home-feature__body {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+
+.home-feature__title {
+  margin: 0 0 4px;
+  font-family: var(--lotos-font-display);
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--lotos-text);
+}
+
+.home-feature__text {
+  margin: 0;
+  font-size: var(--lotos-caption);
+  color: var(--lotos-text-muted);
+  line-height: 1.4;
+}
+
+.home-feature__arrow {
+  font-size: 20px;
+  color: var(--lotos-rose);
+  flex-shrink: 0;
+}
+
+.home-soon {
+  padding: var(--lotos-space-md) var(--lotos-space-lg);
+  margin-bottom: var(--lotos-space-lg);
+  opacity: 0.75;
+}
+
+.home-soon__label {
+  margin: 0 0 4px;
+  font-size: var(--lotos-label);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--lotos-text-muted);
+}
+
+.home-soon__text {
+  margin: 0;
+  font-size: var(--lotos-caption);
+  color: var(--lotos-text-secondary);
+  line-height: 1.4;
+}

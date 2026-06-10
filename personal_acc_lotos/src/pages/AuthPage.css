@@ -1,0 +1,108 @@
+.auth-page {
+  min-height: 100vh;
+  padding: var(--lotos-space-xl) var(--lotos-space-md) var(--lotos-space-xl);
+  background: var(--lotos-bg);
+}
+
+.auth-page__hero {
+  position: relative;
+  text-align: center;
+  margin-bottom: var(--lotos-space-xl);
+}
+
+.auth-page__orb {
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(196, 168, 130, 0.22) 0%, transparent 65%);
+  pointer-events: none;
+}
+
+.auth-page__logo {
+  position: relative;
+  display: inline-block;
+  font-size: 44px;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.auth-page__brand {
+  position: relative;
+  margin: 0 0 12px;
+  font-size: var(--lotos-label);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--lotos-rose);
+}
+
+.auth-page__title {
+  position: relative;
+  margin: 0 0 8px;
+  font-family: var(--lotos-font-display);
+  font-size: 34px;
+  font-weight: 500;
+  line-height: 1.2;
+  color: var(--lotos-text);
+}
+
+.auth-page__subtitle {
+  position: relative;
+  margin: 0;
+  font-size: var(--lotos-body);
+  color: var(--lotos-text-secondary);
+}
+
+.auth-page__card {
+  padding: var(--lotos-space-lg);
+}
+
+.auth-page__step {
+  margin: 0 0 8px;
+  font-size: var(--lotos-label);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--lotos-rose);
+}
+
+.auth-page__section-title {
+  margin: 0 0 8px;
+  font-family: var(--lotos-font-display);
+  font-size: 26px;
+  font-weight: 500;
+  color: var(--lotos-text);
+}
+
+.auth-page__hint {
+  margin: 0 0 var(--lotos-space-md);
+  font-size: var(--lotos-caption);
+  color: var(--lotos-text-muted);
+  line-height: 1.5;
+}
+
+.auth-page__actions {
+  display: flex;
+  gap: var(--lotos-space-sm);
+  align-items: center;
+}
+
+.auth-page input {
+  color: var(--lotos-text);
+  caret-color: var(--lotos-plum);
+}
+
+.auth-page input::placeholder {
+  color: var(--lotos-text-muted);
+  opacity: 1;
+}
+
+.auth-page input:-webkit-autofill,
+.auth-page input:-webkit-autofill:hover,
+.auth-page input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px var(--lotos-blush) inset;
+  -webkit-text-fill-color: var(--lotos-text);
+  transition: background-color 5000s ease-in-out 0s;
+}

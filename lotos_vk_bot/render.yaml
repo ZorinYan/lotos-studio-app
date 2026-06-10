@@ -1,0 +1,34 @@
+# Blueprint для Render: https://render.com/docs/blueprint-spec
+#
+# Web Service: бот + HTTP health-check на PORT (для Render).
+# Long Poll крутится в фоновом потоке, /health отвечает 200.
+
+services:
+  - type: web
+    name: lotos-vk-bot
+    runtime: python
+    plan: free
+    region: frankfurt
+    buildCommand: pip install -r requirements.txt
+    startCommand: python main.py
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.0"
+      - key: VK_GROUP_TOKEN
+        sync: false
+      - key: YCLIENTS_PARTNER_TOKEN
+        sync: false
+      - key: YCLIENTS_USER_TOKEN
+        sync: false
+      - key: YCLIENTS_COMPANY_ID
+        value: "44598"
+      - key: STUDIO_NAME
+        value: Лотос
+      - key: YCLIENTS_BOOKING_URL
+        value: https://n1996926.yclients.com/
+      - key: REMINDER_OFFSETS_MINUTES
+        value: "1440,300,60"
+      - key: REMINDER_CHECK_INTERVAL_SEC
+        value: "120"
