@@ -6,6 +6,7 @@ import { AppHeader } from '../components/AppHeader'
 import { ScheduleClassCard } from '../components/ui/ScheduleClassCard'
 import { ScheduleClassModal } from '../components/ui/ScheduleClassModal'
 import type { ScheduleClass, ScheduleData, ScheduleFilterOptions } from '../types/schedule'
+import { localTodayIso } from '../utils/format'
 import './SchedulePage.css'
 
 type SchedulePageProps = {
@@ -14,16 +15,12 @@ type SchedulePageProps = {
   onBack: () => void
 }
 
-function todayIso() {
-  return new Date().toISOString().slice(0, 10)
-}
-
 function serviceFilterKey(id: number | null, title: string) {
   return id != null ? `id:${id}` : `title:${title.toLowerCase()}`
 }
 
 export function SchedulePage({ vkUserId, studioName, onBack }: SchedulePageProps) {
-  const [selectedDate, setSelectedDate] = useState(todayIso)
+  const [selectedDate, setSelectedDate] = useState(localTodayIso)
   const [data, setData] = useState<ScheduleData | null>(null)
   const [filterOptions, setFilterOptions] = useState<ScheduleFilterOptions | null>(null)
   const [trainerId, setTrainerId] = useState<number | null>(null)
@@ -43,7 +40,16 @@ export function SchedulePage({ vkUserId, studioName, onBack }: SchedulePageProps
       setData(schedule)
       setSelectedDate(schedule.date)
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Не удалось загрузить расписание')
+      const message =
+        err instanceof ApiError ? err.message : 'Не удалось загрузить расписание'
+      if (message.includes('прошедший день')) {
+        const today = localTodayIso()
+        if (date !== today) {
+          setSelectedDate(today)
+          return
+        }
+      }
+      setError(message)
     } finally {
       setLoading(false)
       setRefreshing(false)

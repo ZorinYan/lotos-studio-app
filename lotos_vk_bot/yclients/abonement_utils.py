@@ -75,7 +75,37 @@ def visit_used_abonement(visit: dict) -> bool:
     return False
 
 
+def _parse_balance_string_value(raw) -> int | None:
+    if raw is None:
+        return None
+    text = str(raw).strip()
+    if not text or text == "—":
+        return None
+
+    # «Серфинг (x10)», «Услуги (х6)»
+    match = re.search(r"[\(\s][xх×]\s*(\d+)", text, re.IGNORECASE)
+    if match:
+        return int(match.group(1))
+
+    # «6 из 10»
+    match = re.search(r"(\d+)\s*из\s*\d+", text, re.IGNORECASE)
+    if match:
+        return int(match.group(1))
+
+    if text.isdigit():
+        return int(text)
+
+    match = re.search(r"(\d+)", text)
+    if match:
+        return int(match.group(1))
+    return None
+
+
 def abonement_balance_count(item: dict) -> int | None:
+    parsed = _parse_balance_string_value(item.get("balance_string"))
+    if parsed is not None:
+        return parsed
+
     balance = item.get("balance")
     if balance is not None:
         try:
@@ -83,10 +113,6 @@ def abonement_balance_count(item: dict) -> int | None:
         except (TypeError, ValueError):
             pass
 
-    raw = str(item.get("balance_string") or "")
-    match = re.search(r"(\d+)", raw)
-    if match:
-        return int(match.group(1))
     return None
 
 

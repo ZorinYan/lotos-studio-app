@@ -6,7 +6,11 @@ from _lib_path import ensure_lib_path
 
 ensure_lib_path()
 
-from yclients.abonement_utils import abonement_balance_count, abonement_expiry_date
+from yclients.abonement_utils import (
+    _parse_balance_string_value,
+    abonement_balance_count,
+    abonement_expiry_date,
+)
 from yclients.formatters import status_icon
 from yclients.formatters_cabinet import _service_titles, _staff_name
 from utils.dates import format_date_short, format_datetime_short
@@ -55,14 +59,22 @@ def extract_balance_services(item: dict) -> list[dict]:
     container = item.get("balance_container") or {}
     links = container.get("links") or []
 
+    parsed_total = _parse_balance_string_value(item.get("balance_string"))
+
     for link in links:
         title = _link_title(link)
-        count = link.get("count")
-        if title is None or count is None:
+        if title is None:
             continue
-        try:
-            remaining = int(count)
-        except (TypeError, ValueError):
+        count = link.get("count")
+        remaining: int | None = None
+        if count is not None:
+            try:
+                remaining = int(count)
+            except (TypeError, ValueError):
+                remaining = None
+        if remaining == 0 and parsed_total is not None and len(links) == 1:
+            remaining = parsed_total
+        if remaining is None:
             continue
         services.append({"title": title, "remaining": remaining})
 
@@ -86,11 +98,13 @@ def extract_balance_services(item: dict) -> list[dict]:
 
 
 def total_remaining(services: list[dict], item: dict) -> int | None:
+    fallback = abonement_balance_count(item)
     if not services:
-        return abonement_balance_count(item)
-    if item.get("is_united_balance") and len(services) == 1:
-        return services[0]["remaining"]
-    return sum(service["remaining"] for service in services)
+        return fallback
+    total = sum(service["remaining"] for service in services)
+    if total > 0:
+        return total
+    return fallback
 
 
 def serialize_usage_visit(visit: dict) -> dict:

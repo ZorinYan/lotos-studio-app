@@ -54,7 +54,7 @@ function App() {
     const bootTimeoutId = window.setTimeout(() => {
       if (!cancelled) {
         setBootError(
-          'Сервер долго не отвечает. На Render Free первый запуск может занять до минуты — обновите страницу.',
+          'Сервер долго не отвечает. На Render первый запуск может занять до минуты — обновите страницу.',
         )
         setScreen('auth')
       }

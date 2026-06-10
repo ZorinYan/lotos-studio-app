@@ -2,12 +2,22 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
-from dotenv import load_dotenv
+from dotenv import dotenv_values
 
-_LOCAL_ENV = Path(__file__).resolve().parent / ".env"
+_SERVER_DIR = Path(__file__).resolve().parent
 
-if _LOCAL_ENV.exists():
-    load_dotenv(_LOCAL_ENV)
+
+def _load_env_files() -> None:
+    # Сначала общий .env (токены из бота), затем server/.env только для недостающих ключей.
+    for env_file in (_SERVER_DIR.parent / ".env", _SERVER_DIR / ".env"):
+        if not env_file.exists():
+            continue
+        for key, value in dotenv_values(env_file).items():
+            if value and str(value).strip() and key not in os.environ:
+                os.environ[key] = str(value).strip()
+
+
+_load_env_files()
 
 
 @dataclass(frozen=True)

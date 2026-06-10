@@ -102,8 +102,9 @@ def _serialize_activity(activity: dict) -> dict | None:
 
 
 def load_schedule(target_date: date, config: MiniAppConfig) -> dict:
-    if target_date < date.today():
-        raise AuthError("invalid_date", "Нельзя посмотреть расписание за прошедший день.")
+    today = date.today()
+    if target_date < today:
+        target_date = today
 
     yclients = create_yclients_client(config)
     try:
@@ -130,7 +131,7 @@ def load_schedule(target_date: date, config: MiniAppConfig) -> dict:
     return {
         "date": target_date.isoformat(),
         "dateLabel": format_date_short(target_date.isoformat()),
-        "dayLabel": _day_chip_label(target_date, date.today()),
+        "dayLabel": _day_chip_label(target_date, today),
         "classes": classes,
         "days": build_day_options(),
     }

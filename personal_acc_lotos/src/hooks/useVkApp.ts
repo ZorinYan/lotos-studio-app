@@ -1,4 +1,7 @@
-import { parseURLSearchParamsForGetLaunchParams } from '@vkontakte/vk-bridge'
+import {
+  parseURLSearchParamsForGetLaunchParams,
+  type UserInfo,
+} from '@vkontakte/vk-bridge'
 import { useEffect, useState } from 'react'
 import { bridge, sendVkInit } from '../vkBridge'
 
@@ -96,7 +99,7 @@ export function useVkApp(): VkAppState {
           return
         }
 
-        const userInfo = await withTimeout(
+        const userInfo = await withTimeout<UserInfo>(
           bridge.send('VKWebAppGetUserInfo'),
           BRIDGE_TIMEOUT_MS,
         )
