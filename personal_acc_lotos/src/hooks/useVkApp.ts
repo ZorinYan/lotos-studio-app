@@ -1,5 +1,6 @@
-import bridge, { parseURLSearchParamsForGetLaunchParams } from '@vkontakte/vk-bridge'
+import { parseURLSearchParamsForGetLaunchParams } from '@vkontakte/vk-bridge'
 import { useEffect, useState } from 'react'
+import { bridge, sendVkInit } from '../vkBridge'
 
 export type VkUser = {
   id: number
@@ -14,7 +15,7 @@ type VkAppState = {
 }
 
 const DEV_VK_USER_ID = Number(import.meta.env.VITE_DEV_VK_USER_ID ?? '1')
-const BRIDGE_TIMEOUT_MS = 10_000
+const BRIDGE_TIMEOUT_MS = 15_000
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return Promise.race([
@@ -62,7 +63,6 @@ function shouldSkipBridge(): boolean {
   if (import.meta.env.VITE_SKIP_VK_BRIDGE !== 'true') {
     return false
   }
-  // В iframe ВК всегда используем реальные параметры запуска, не тестовый режим.
   return !isVkIframe() && !userFromLaunchParams()
 }
 
@@ -87,7 +87,7 @@ export function useVkApp(): VkAppState {
       const launchUser = userFromLaunchParams() ?? userFromQuery()
 
       try {
-        await withTimeout(bridge.send('VKWebAppInit'), BRIDGE_TIMEOUT_MS)
+        await withTimeout(sendVkInit(), BRIDGE_TIMEOUT_MS)
 
         if (launchUser) {
           if (!cancelled) {
