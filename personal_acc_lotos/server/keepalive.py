@@ -1,3 +1,7 @@
+"""Периодический ping /health — не даёт Free Web Service на Render заснуть."""
+
+from __future__ import annotations
+
 import logging
 import os
 import threading
@@ -7,7 +11,7 @@ from urllib.request import Request, urlopen
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_INTERVAL_SEC = 600
+DEFAULT_INTERVAL_SEC = 540
 
 
 def _collect_base_urls() -> list[str]:
@@ -25,8 +29,6 @@ def _collect_base_urls() -> list[str]:
 
 
 class KeepAliveService:
-    """Периодически дергает /health, чтобы Free Web Service на Render не засыпал."""
-
     def __init__(self, base_urls: list[str], interval_sec: int) -> None:
         self.urls = [f"{url}/health" for url in base_urls]
         self.interval_sec = max(interval_sec, 300)

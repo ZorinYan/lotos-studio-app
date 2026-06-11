@@ -1,6 +1,9 @@
 # API для мини-приложения (бесплатный Web Service на Render).
 # Фронтенд — на Vercel (см. DEPLOY.md).
 #
+# Keep-alive (бесплатно): встроенный ping /health + GitHub Actions + взаимный ping с VK-ботом.
+# RENDER_EXTERNAL_URL Render задаёт сам; KEEPALIVE_EXTRA_URLS — соседний сервис.
+#
 # Если репозиторий = только папка personal_acc_lotos: rootDir = server
 # Если монорепо: rootDir = personal_acc_lotos/server
 services:
@@ -17,6 +20,10 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: "3.12.0"
+      - key: KEEPALIVE_INTERVAL_SEC
+        value: "540"
+      - key: KEEPALIVE_EXTRA_URLS
+        value: https://lotos-vk-bot.onrender.com
       - key: YCLIENTS_PARTNER_TOKEN
         sync: false
       - key: YCLIENTS_USER_TOKEN

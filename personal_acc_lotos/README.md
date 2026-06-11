@@ -32,3 +32,5 @@ npm run dev
 
 - Фронт: Vercel (`vercel.json`)
 - API: Render (`render.yaml`)
+
+На Free Render API не засыпает за счёт: встроенного keep-alive (`keepalive.py`), GitHub Actions (`.github/workflows/render-keepalive.yml`) и взаимного ping с VK-ботом (`KEEPALIVE_EXTRA_URLS` в `render.yaml`).

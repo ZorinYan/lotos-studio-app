@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from datetime import date
 
 from fastapi import FastAPI, HTTPException
@@ -20,13 +21,27 @@ from schedule_api import load_schedule
 from schedule_filters_api import load_schedule_filters
 from miniapp_config import MiniAppConfig, load_config
 from _lib_path import ensure_lib_path
+from keepalive import KeepAliveService, start_from_env
 
 ensure_lib_path()
 from utils.dates import studio_today  # noqa: E402
 
 config: MiniAppConfig = load_config()
 
-app = FastAPI(title="Lotos Mini App API")
+_keepalive: KeepAliveService | None = None
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    global _keepalive
+    _keepalive = start_from_env()
+    yield
+    if _keepalive is not None:
+        _keepalive.stop()
+        _keepalive = None
+
+
+app = FastAPI(title="Lotos Mini App API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

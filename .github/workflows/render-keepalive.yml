@@ -1,4 +1,5 @@
-# Пинг Render API, чтобы free-инстанс не засыпал (~15 мин без запросов).
+# Пинг Render-сервисов, чтобы free-инстансы не засыпали (~15 мин без запросов).
+# Дополнительно: встроенный keep-alive в API и VK-боте + взаимный ping между ними.
 name: Render keep-alive
 
 on:
@@ -14,8 +15,13 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     timeout-minutes: 2
+    strategy:
+      fail-fast: false
+      matrix:
+        url:
+          - https://lotos-studio-app.onrender.com/health
+          - https://lotos-vk-bot.onrender.com/health
     steps:
-      - name: Ping /health
+      - name: Ping ${{ matrix.url }}
         run: |
-          curl -fsS --retry 2 --retry-delay 5 --max-time 45 \
-            "https://lotos-studio-app.onrender.com/health"
+          curl -fsS --retry 2 --retry-delay 5 --max-time 45 "${{ matrix.url }}"

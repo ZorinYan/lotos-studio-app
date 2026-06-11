@@ -245,7 +245,8 @@ Keep-alive: https://lotos-vk-bot.onrender.com/health каждые 600 сек
 
 | Переменная | Значение | Зачем |
 |------------|----------|--------|
-| `KEEPALIVE_INTERVAL_SEC` | `600` | интервал ping (сек), минимум 300 |
+| `KEEPALIVE_INTERVAL_SEC` | `540` | интервал ping (сек), минимум 300 |
+| `KEEPALIVE_EXTRA_URLS` | — | доп. URL через запятую (в `render.yaml` — API мини-приложения) |
 | `KEEPALIVE_ENABLED` | `false` | отключить keep-alive |
 | `KEEPALIVE_URL` | URL сервиса | если `RENDER_EXTERNAL_URL` нет |
 

@@ -32,3 +32,7 @@ services:
         value: "1440,300,60"
       - key: REMINDER_CHECK_INTERVAL_SEC
         value: "120"
+      - key: KEEPALIVE_INTERVAL_SEC
+        value: "540"
+      - key: KEEPALIVE_EXTRA_URLS
+        value: https://lotos-studio-app.onrender.com
