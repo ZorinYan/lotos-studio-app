@@ -5,6 +5,7 @@ import requests
 from _lib_path import ensure_lib_path
 from calendar_utils import event_window
 from miniapp_config import MiniAppConfig
+from schedule_cache import activities_for_date, fetch_schedule_activities
 from yclients_adapter import (
     YClientsError,
     YClientsPermissionError,
@@ -133,7 +134,10 @@ def load_schedule(target_date: date, config: MiniAppConfig) -> dict:
 
     yclients = create_yclients_client(config)
     try:
-        activities = yclients.get_activities_for_date(target_date)
+        activities = activities_for_date(
+            fetch_schedule_activities(yclients),
+            target_date,
+        )
     except YClientsPermissionError:
         raise AuthError(
             "service_unavailable",
