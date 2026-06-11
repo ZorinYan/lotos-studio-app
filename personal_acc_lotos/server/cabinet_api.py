@@ -27,6 +27,10 @@ from utils.dates import format_date_short  # noqa: E402
 from auth_service import AuthError  # noqa: E402
 
 
+def _serialize_abonements(raw_items: list[dict]) -> list[dict]:
+    return [serialize_abonement(item) for item in raw_items]
+
+
 def _serialize_visit(visit: dict) -> dict:
     return {
         "date": format_date_short(visit.get("date", "")),
@@ -107,7 +111,7 @@ def load_cabinet(
             if profile.get("last_visit_date")
             else None,
         },
-        "abonements": [serialize_abonement(item) for item in data.abonements],
+        "abonements": _serialize_abonements(data.abonements),
         "abonementUsageVisits": usage_visits,
         "upcomingRecords": [serialize_record(record) for record in data.upcoming_records],
         "recentVisits": [_serialize_visit(visit) for visit in data.recent_visits],

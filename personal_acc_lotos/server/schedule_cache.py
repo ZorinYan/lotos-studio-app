@@ -10,6 +10,7 @@ from _lib_path import ensure_lib_path
 
 ensure_lib_path()
 
+from utils.dates import studio_now, studio_today  # noqa: E402
 from yclients.client import YClientsClient  # noqa: E402
 
 SCHEDULE_CACHE_TTL_SEC = 600
@@ -40,7 +41,7 @@ def fetch_schedule_activities(
     *,
     use_cache: bool = True,
 ) -> list[dict]:
-    today = date.today()
+    today = studio_today()
     end = today + timedelta(days=days - 1)
     company_id = yclients.config.yclients_company_id
     key = _range_key(company_id, today, end)
@@ -60,13 +61,13 @@ def fetch_schedule_activities(
 
 
 def activities_for_date(activities: list[dict], target: date) -> list[dict]:
-    now = datetime.now()
+    now = studio_now()
     filtered: list[dict] = []
     for activity in activities:
         dt = YClientsClient._parse_activity_datetime(activity)
         if not dt or dt.date() != target:
             continue
-        if target == date.today() and dt < now:
+        if target == studio_today() and dt < now:
             continue
         filtered.append(activity)
 

@@ -5,7 +5,11 @@ from _lib_path import ensure_lib_path
 from calendar_utils import event_window
 
 ensure_lib_path()
-from utils.dates import format_date_short, format_datetime_short  # noqa: E402
+from utils.dates import (  # noqa: E402
+    format_date_short,
+    format_datetime_short,
+    studio_now,
+)
 from yclients.client import YClientsClient  # noqa: E402
 
 ATTENDANCE_LABELS = {
@@ -63,7 +67,7 @@ def is_upcoming(record: dict, now: datetime | None = None) -> bool:
     dt = YClientsClient._parse_record_datetime(record)
     if not dt:
         return False
-    current = now or datetime.now()
+    current = now or studio_now()
     return dt >= current
 
 

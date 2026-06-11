@@ -10,6 +10,7 @@ from yclients.abonement_utils import (
     _parse_balance_string_value,
     abonement_balance_count,
     abonement_expiry_date,
+    is_active_abonement,
 )
 from yclients.formatters import status_icon
 from yclients.formatters_cabinet import _service_titles, _staff_name
@@ -72,7 +73,7 @@ def extract_balance_services(item: dict) -> list[dict]:
                 remaining = int(count)
             except (TypeError, ValueError):
                 remaining = None
-        if remaining == 0 and parsed_total is not None and len(links) == 1:
+        if remaining == 0 and parsed_total and parsed_total > 0 and is_active_abonement(item):
             remaining = parsed_total
         if remaining is None:
             continue

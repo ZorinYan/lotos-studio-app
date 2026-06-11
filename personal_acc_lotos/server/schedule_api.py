@@ -18,7 +18,7 @@ from yclients_adapter import (
 
 ensure_lib_path()
 
-from utils.dates import format_date_short  # noqa: E402
+from utils.dates import format_date_short, studio_today  # noqa: E402
 from yclients.client import YClientsClient  # noqa: E402
 
 from auth_service import AuthError  # noqa: E402
@@ -35,7 +35,7 @@ def _day_chip_label(target: date, today: date) -> str:
 
 
 def build_day_options(days_ahead: int = 14) -> list[dict]:
-    today = date.today()
+    today = studio_today()
     return [
         {
             "date": (today + timedelta(days=offset)).isoformat(),
@@ -137,7 +137,7 @@ def load_schedule(
     *,
     force_refresh: bool = False,
 ) -> dict:
-    today = date.today()
+    today = studio_today()
     if target_date < today:
         target_date = today
 

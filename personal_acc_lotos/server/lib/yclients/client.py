@@ -5,6 +5,12 @@ from datetime import date, datetime, timedelta
 import requests
 
 from config import Config
+from utils.dates import (
+    parse_record_datetime,
+    studio_now,
+    studio_today,
+    studio_timezone,
+)
 
 _RETRYABLE = (
     requests.exceptions.ConnectionError,
@@ -208,7 +214,7 @@ class YClientsClient:
         return payload.get("data", {})
 
     def get_upcoming_records(self, client_id: int, limit: int = 3) -> list[dict]:
-        today = date.today().isoformat()
+        today = studio_today().isoformat()
         payload = self._request(
             "GET",
             f"/records/{self.config.yclients_company_id}",
@@ -226,7 +232,7 @@ class YClientsClient:
 
         records = payload.get("data", [])
         upcoming = []
-        now = datetime.now()
+        now = studio_now()
         for record in records:
             if record.get("deleted"):
                 continue
@@ -304,16 +310,7 @@ class YClientsClient:
 
     @staticmethod
     def _parse_record_datetime(record: dict) -> datetime | None:
-        dt_raw = record.get("datetime") or record.get("date", "")
-        if not dt_raw:
-            return None
-        try:
-            dt = datetime.fromisoformat(dt_raw.replace("Z", "+00:00"))
-            if dt.tzinfo:
-                dt = dt.replace(tzinfo=None)
-            return dt
-        except ValueError:
-            return None
+        return parse_record_datetime(record.get("datetime") or record.get("date", ""))
 
     def get_abonement_usage_visits(self, phone: str, limit: int = 3) -> list[dict]:
         from yclients.abonement_utils import visit_used_abonement
@@ -454,7 +451,7 @@ class YClientsClient:
         end = start + timedelta(days=days - 1)
         activities = self.search_activities(start, end)
 
-        now = datetime.now()
+        now = studio_now()
         day_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
         filtered = []
         for activity in activities:
@@ -467,13 +464,13 @@ class YClientsClient:
 
     def get_activities_for_date(self, target: date) -> list[dict]:
         activities = self.search_activities(target, target)
-        now = datetime.now()
+        now = studio_now()
         filtered = []
         for activity in activities:
             dt = self._parse_activity_datetime(activity)
             if not dt or dt.date() != target:
                 continue
-            if target == date.today() and dt < now:
+            if target == studio_today() and dt < now:
                 continue
             filtered.append(activity)
 
@@ -543,9 +540,9 @@ class YClientsClient:
             return None
         try:
             if isinstance(raw, (int, float)):
-                return datetime.fromtimestamp(raw)
-            return datetime.fromisoformat(str(raw).replace("Z", "+00:00")).replace(
-                tzinfo=None
-            )
+                return datetime.fromtimestamp(raw, tz=studio_timezone()).replace(
+                    tzinfo=None
+                )
+            return parse_record_datetime(str(raw))
         except (ValueError, OSError, OverflowError):
             return None

@@ -1,5 +1,3 @@
-from datetime import datetime
-
 import requests
 
 from _lib_path import ensure_lib_path
@@ -21,6 +19,7 @@ from client_cache import (  # noqa: E402
     set_cached_records,
 )
 from utils import storage  # noqa: E402
+from utils.dates import studio_now  # noqa: E402
 from auth_service import AuthError  # noqa: E402
 
 VALID_FILTERS = {"all", "upcoming", "past"}
@@ -95,7 +94,7 @@ def _fetch_records_bundle(
             "По этому номеру нет карточки в студии.",
         ) from None
 
-    now = datetime.now()
+    now = studio_now()
     try:
         raw_records = yclients.get_client_records(cabinet.profile["id"])
     except YClientsPermissionError:
@@ -175,7 +174,7 @@ def cancel_record(vk_user_id: int, record_id: int, config: MiniAppConfig) -> dic
         ) from None
 
     profile = cabinet.profile
-    now = datetime.now()
+    now = studio_now()
 
     try:
         raw_records = yclients.get_client_records(profile["id"])

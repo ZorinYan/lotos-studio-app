@@ -4,7 +4,7 @@ from _lib_path import ensure_lib_path
 from abonement_serializer import serialize_abonement
 from home_alerts import build_home_alerts
 from miniapp_config import MiniAppConfig
-from record_serializer import serialize_record
+from record_serializer import is_upcoming, serialize_record
 from client_cache import (
     clear_client_data_caches,
     fetch_cabinet_data,
@@ -70,11 +70,11 @@ def load_home(
 
     abonements = [serialize_abonement(item) for item in data.abonements]
     primary_abonement = abonements[0] if abonements else None
-    next_record = (
-        serialize_record(data.upcoming_records[0])
-        if data.upcoming_records
-        else None
-    )
+    next_record = None
+    for raw in data.upcoming_records:
+        if is_upcoming(raw):
+            next_record = serialize_record(raw)
+            break
 
     payload = {
         "studioName": config.studio_name,

@@ -101,8 +101,37 @@ def _parse_balance_string_value(raw) -> int | None:
     return None
 
 
+def abonement_links_remaining(item: dict) -> int | None:
+    links = (item.get("balance_container") or {}).get("links") or []
+    if not links:
+        return None
+
+    total = 0
+    found = False
+    for link in links:
+        if not isinstance(link, dict):
+            continue
+        count = link.get("count")
+        if count is None:
+            continue
+        try:
+            total += int(count)
+            found = True
+        except (TypeError, ValueError):
+            continue
+    return total if found else None
+
+
 def abonement_balance_count(item: dict) -> int | None:
+    links_remaining = abonement_links_remaining(item)
     parsed = _parse_balance_string_value(item.get("balance_string"))
+
+    if links_remaining is not None and links_remaining > 0:
+        return links_remaining
+    if parsed is not None and parsed > 0:
+        return parsed
+    if links_remaining is not None:
+        return links_remaining
     if parsed is not None:
         return parsed
 
@@ -125,9 +154,34 @@ def abonement_expiry_date(item: dict) -> date | None:
 
 
 def is_active_abonement(item: dict) -> bool:
-    status = item.get("status", {})
+    status = item.get("status") or {}
+    if not isinstance(status, dict):
+        return True
+
+    slug = str(status.get("slug") or "").lower()
+    if slug in {
+        "expired",
+        "depleted",
+        "used",
+        "closed",
+        "archived",
+        "inactive",
+        "finished",
+    }:
+        return False
+
     status_title = str(status.get("extended_title") or status.get("title") or "").lower()
-    inactive_markers = ("просрочен", "закончился", "архив", "закрыт", "использован")
+    inactive_markers = (
+        "просрочен",
+        "исчерпан",
+        "закончился",
+        "завершён",
+        "завершен",
+        "архив",
+        "закрыт",
+        "использован",
+        "неактив",
+    )
     if any(marker in status_title for marker in inactive_markers):
         return False
     return True

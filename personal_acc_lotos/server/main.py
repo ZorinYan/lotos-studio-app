@@ -19,6 +19,10 @@ from rebook_api import load_rebook_slots
 from schedule_api import load_schedule
 from schedule_filters_api import load_schedule_filters
 from miniapp_config import MiniAppConfig, load_config
+from _lib_path import ensure_lib_path
+
+ensure_lib_path()
+from utils.dates import studio_today  # noqa: E402
 
 config: MiniAppConfig = load_config()
 
@@ -171,7 +175,7 @@ def schedule_rebook(vk_user_id: int):
 @app.get("/api/schedule")
 def schedule(day: str | None = None, refresh: bool = False):
     try:
-        target = date.fromisoformat(day) if day else date.today()
+        target = date.fromisoformat(day) if day else studio_today()
     except ValueError:
         raise HTTPException(status_code=400, detail="Некорректная дата") from None
 

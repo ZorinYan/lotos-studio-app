@@ -35,14 +35,61 @@ def _service_titles_match(activity_title: str, abonement_service_title: str) -> 
     return left in right or right in left
 
 
+def _parse_int_id(raw) -> int | None:
+    if raw is None:
+        return None
+    try:
+        return int(raw)
+    except (TypeError, ValueError):
+        return None
+
+
 def _link_service_id(link: dict) -> int | None:
     service = link.get("service")
-    if isinstance(service, dict) and service.get("id") is not None:
-        try:
-            return int(service["id"])
-        except (TypeError, ValueError):
-            pass
+    if isinstance(service, dict):
+        return _parse_int_id(service.get("id"))
     return None
+
+
+def _link_category_id(link: dict) -> int | None:
+    category = link.get("category")
+    if isinstance(category, dict):
+        parsed = _parse_int_id(category.get("id"))
+        if parsed is not None:
+            return parsed
+
+    service = link.get("service")
+    if isinstance(service, dict):
+        nested = service.get("category")
+        if isinstance(nested, dict):
+            parsed = _parse_int_id(nested.get("id"))
+            if parsed is not None:
+                return parsed
+    return None
+
+
+def _activity_category_ids(service: dict) -> set[int]:
+    ids: set[int] = set()
+    parsed = _parse_int_id(service.get("category_id"))
+    if parsed is not None:
+        ids.add(parsed)
+
+    category = service.get("category")
+    if isinstance(category, dict):
+        parsed = _parse_int_id(category.get("id"))
+        if parsed is not None:
+            ids.add(parsed)
+    return ids
+
+
+def _link_has_remaining(link: dict) -> bool:
+    count = link.get("count")
+    if count is None:
+        return False
+    try:
+        return int(count) > 0
+    except (TypeError, ValueError):
+        return False
 
 
 def abonement_covers_activity(abonement: dict, activity: dict) -> bool:
@@ -55,27 +102,41 @@ def abonement_covers_activity(abonement: dict, activity: dict) -> bool:
 
     service = activity.get("service") or {}
     activity_title = str(service.get("title") or "").strip()
-    activity_service_id = service.get("id")
+    activity_service_id = _parse_int_id(service.get("id"))
+    activity_category_ids = _activity_category_ids(service)
+    activity_category = service.get("category") or {}
+    activity_category_title = ""
+    if isinstance(activity_category, dict):
+        activity_category_title = str(activity_category.get("title") or "").strip()
 
     if abonement.get("is_united_balance"):
         remaining = abonement_balance_count(abonement)
         return remaining is not None and remaining > 0
 
     for link in (abonement.get("balance_container") or {}).get("links") or []:
+        if not _link_has_remaining(link):
+            continue
+
         link_service_id = _link_service_id(link)
-        if link_service_id is not None and activity_service_id is not None:
-            try:
-                if int(link_service_id) == int(activity_service_id):
-                    count = link.get("count")
-                    if count is not None and int(count) > 0:
-                        return True
-            except (TypeError, ValueError):
-                pass
+        if (
+            link_service_id is not None
+            and activity_service_id is not None
+            and link_service_id == activity_service_id
+        ):
+            return True
+
+        link_category_id = _link_category_id(link)
+        if link_category_id is not None and link_category_id in activity_category_ids:
+            return True
 
     for svc in extract_balance_services(abonement):
         if svc["remaining"] <= 0:
             continue
         if _service_titles_match(activity_title, svc["title"]):
+            return True
+        if activity_category_title and _service_titles_match(
+            activity_category_title, svc["title"]
+        ):
             return True
 
     return False
