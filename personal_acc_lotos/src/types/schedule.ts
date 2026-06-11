@@ -48,6 +48,26 @@ export type ScheduleClass = {
   startsAt: string
   endsAt: string
   comment: string | null
+  priceMin?: number | null
+  trialPrice?: number | null
+  hasTrial?: boolean
+  requiresAbonement?: boolean
+}
+
+export type GuestCheckResult = {
+  allowed: boolean
+  reason: 'login_required' | null
+  isFirstVisit: boolean
+  message: string | null
+}
+
+export type BookingEligibility = {
+  canBook: boolean
+  isTrial: boolean
+  requiresAbonement: boolean
+  hasAbonement: boolean
+  reason: 'abonement_required' | 'trial_unavailable' | null
+  message: string | null
 }
 
 export type ScheduleData = {
@@ -60,6 +80,7 @@ export type ScheduleData = {
 
 export type BookScheduleResult = {
   success: boolean
+  isTrial?: boolean
   phoneDisplay: string
   message: string
   class: ScheduleClass

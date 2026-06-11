@@ -90,8 +90,8 @@
 }
 
 .schedule-card__spots--full {
-  background: rgba(74, 44, 61, 0.08);
-  color: var(--lotos-text-muted);
+  background: rgba(196, 77, 77, 0.14);
+  color: var(--lotos-danger);
 }
 
 .schedule-card__arrow {

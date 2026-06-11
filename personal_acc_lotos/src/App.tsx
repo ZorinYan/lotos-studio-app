@@ -29,6 +29,20 @@ function App() {
   const [phoneDisplay, setPhoneDisplay] = useState<string | null>(null)
   const [clientName, setClientName] = useState<string | null>(null)
   const [bootError, setBootError] = useState<string | null>(null)
+  const [guestSchedule, setGuestSchedule] = useState(false)
+  const [authenticated, setAuthenticated] = useState(false)
+
+  const applySession = useCallback((status: Awaited<ReturnType<typeof fetchAuthStatus>>) => {
+    setAuthenticated(status.authenticated)
+    if (status.authenticated) {
+      setPhoneDisplay(status.phoneDisplay)
+      setClientName(status.clientName)
+      setGuestSchedule(false)
+    } else {
+      setPhoneDisplay(null)
+      setClientName(null)
+    }
+  }, [])
 
   const checkSession = useCallback(async (userId: number) => {
     const [publicConfig, status] = await Promise.all([
@@ -36,16 +50,13 @@ function App() {
       fetchAuthStatus(userId),
     ])
     setConfig(publicConfig)
+    applySession(status)
     if (status.authenticated) {
-      setPhoneDisplay(status.phoneDisplay)
-      setClientName(status.clientName)
       setScreen('home')
     } else {
-      setPhoneDisplay(null)
-      setClientName(null)
       setScreen('auth')
     }
-  }, [])
+  }, [applySession])
 
   useEffect(() => {
     if (!ready || !vkUser) return
@@ -87,12 +98,28 @@ function App() {
         fetchAuthStatus(vkUser.id),
       ])
       setConfig(publicConfig)
-      setPhoneDisplay(status.phoneDisplay)
-      setClientName(status.clientName)
+      applySession(status)
       setScreen('home')
     } catch {
       setScreen('home')
     }
+  }, [vkUser, applySession])
+
+  const handleGuestScheduleBack = useCallback(() => {
+    setGuestSchedule(false)
+    setScreen(authenticated ? 'home' : 'auth')
+  }, [authenticated])
+
+  const handleOpenGuestSchedule = useCallback(async () => {
+    if (!vkUser) return
+    try {
+      const publicConfig = await fetchPublicConfig()
+      setConfig(publicConfig)
+    } catch {
+      // расписание доступно и без публичного конфига
+    }
+    setGuestSchedule(true)
+    setScreen('schedule')
   }, [vkUser])
 
   const handleLogout = useCallback(async () => {
@@ -100,6 +127,8 @@ function App() {
     await logout(vkUser.id)
     setPhoneDisplay(null)
     setClientName(null)
+    setAuthenticated(false)
+    setGuestSchedule(false)
     setScreen('auth')
   }, [vkUser])
 
@@ -130,6 +159,7 @@ function App() {
             vkUser={vkUser}
             bootError={bootError}
             onAuthenticated={handleAuthenticated}
+            onOpenSchedule={() => void handleOpenGuestSchedule()}
           />
         )}
 
@@ -140,7 +170,10 @@ function App() {
             studioName={config?.studioName ?? 'Lotos Studio'}
             phoneDisplay={phoneDisplay}
             onOpenCabinet={() => setScreen('cabinet')}
-            onOpenSchedule={() => setScreen('schedule')}
+            onOpenSchedule={() => {
+              setGuestSchedule(false)
+              setScreen('schedule')
+            }}
             onOpenRecords={() => setScreen('records')}
             onLogout={() => void handleLogout()}
           />
@@ -159,7 +192,10 @@ function App() {
           <SchedulePage
             vkUserId={vkUser.id}
             studioName={config?.studioName ?? 'Lotos Studio'}
-            onBack={() => setScreen('home')}
+            guestMode={guestSchedule}
+            authenticated={authenticated}
+            onBack={handleGuestScheduleBack}
+            onAuthenticated={() => void handleAuthenticated()}
           />
         )}
 

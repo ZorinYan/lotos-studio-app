@@ -97,8 +97,35 @@
 }
 
 .schedule-modal__status--full {
-  background: rgba(74, 44, 61, 0.08);
-  color: var(--lotos-text-muted);
+  background: rgba(196, 77, 77, 0.14);
+  color: var(--lotos-danger);
+}
+
+.schedule-modal__prices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.schedule-modal__price {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--lotos-text-secondary);
+}
+
+.schedule-modal__price--trial {
+  color: var(--lotos-success);
+}
+
+.schedule-modal__trial-note {
+  margin: 0 0 var(--lotos-space-md);
+  padding: 12px 14px;
+  border-radius: var(--lotos-radius-sm);
+  background: rgba(90, 125, 98, 0.1);
+  color: var(--lotos-success);
+  font-size: var(--lotos-caption);
+  line-height: 1.45;
 }
 
 .schedule-modal__section {
@@ -155,6 +182,17 @@
 
 .schedule-modal__hint--muted {
   color: var(--lotos-text-muted);
+}
+
+.schedule-modal__hint--error {
+  color: var(--lotos-danger);
+}
+
+.schedule-modal__guest-error {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: var(--lotos-space-md);
 }
 
 .schedule-modal__actions {

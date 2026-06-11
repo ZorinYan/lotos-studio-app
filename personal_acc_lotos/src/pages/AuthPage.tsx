@@ -14,9 +14,10 @@ type AuthPageProps = {
   vkUser: VkUser
   bootError?: string | null
   onAuthenticated: () => void
+  onOpenSchedule?: () => void
 }
 
-export function AuthPage({ vkUser, bootError, onAuthenticated }: AuthPageProps) {
+export function AuthPage({ vkUser, bootError, onAuthenticated, onOpenSchedule }: AuthPageProps) {
   const [step, setStep] = useState<'phone' | 'name'>('phone')
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -123,6 +124,16 @@ export function AuthPage({ vkUser, bootError, onAuthenticated }: AuthPageProps) 
           >
             {submitting ? 'Проверяем…' : 'Продолжить'}
           </button>
+          {onOpenSchedule && (
+            <button
+              type="button"
+              className="lotos-btn lotos-btn--secondary lotos-btn--stretched auth-page__schedule-btn"
+              disabled={submitting}
+              onClick={onOpenSchedule}
+            >
+              Смотреть расписание и записаться
+            </button>
+          )}
         </section>
       )}
 

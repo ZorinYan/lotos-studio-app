@@ -89,6 +89,10 @@
   align-items: center;
 }
 
+.auth-page__schedule-btn {
+  margin-top: var(--lotos-space-sm);
+}
+
 .auth-page input {
   color: var(--lotos-text);
   caret-color: var(--lotos-plum);

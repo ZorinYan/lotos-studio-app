@@ -80,6 +80,27 @@ def _serialize_activity(activity: dict) -> dict | None:
     trainer = staff.get("name") or staff.get("specialization") or "—"
     duration_minutes = _duration_minutes(activity)
     calendar = event_window(dt, duration_minutes)
+    trial_settings = service.get("trial_settings") or {}
+    trial_price = None
+    if isinstance(trial_settings, dict):
+        raw_trial_price = trial_settings.get("price")
+        if raw_trial_price is not None:
+            try:
+                trial_price = int(raw_trial_price)
+            except (TypeError, ValueError):
+                trial_price = None
+
+    price_min = service.get("price_min")
+    try:
+        price_min = int(price_min) if price_min is not None else None
+    except (TypeError, ValueError):
+        price_min = None
+
+    abonement_restriction = service.get("abonement_restriction")
+    try:
+        requires_abonement = int(abonement_restriction or 0) == 1
+    except (TypeError, ValueError):
+        requires_abonement = False
 
     return {
         "id": activity.get("id"),
@@ -98,6 +119,10 @@ def _serialize_activity(activity: dict) -> dict | None:
         "startsAt": calendar["startsAt"],
         "endsAt": calendar["endsAt"],
         "comment": (activity.get("comment") or "").strip() or None,
+        "priceMin": price_min,
+        "trialPrice": trial_price,
+        "hasTrial": trial_price is not None,
+        "requiresAbonement": requires_abonement,
     }
 
 

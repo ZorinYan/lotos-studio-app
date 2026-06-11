@@ -12,14 +12,24 @@ import './SchedulePage.css'
 type SchedulePageProps = {
   vkUserId: number
   studioName: string
+  guestMode?: boolean
+  authenticated?: boolean
   onBack: () => void
+  onAuthenticated?: () => void
 }
 
 function serviceFilterKey(id: number | null, title: string) {
   return id != null ? `id:${id}` : `title:${title.toLowerCase()}`
 }
 
-export function SchedulePage({ vkUserId, studioName, onBack }: SchedulePageProps) {
+export function SchedulePage({
+  vkUserId,
+  studioName,
+  guestMode = false,
+  authenticated = true,
+  onBack,
+  onAuthenticated,
+}: SchedulePageProps) {
   const [selectedDate, setSelectedDate] = useState(localTodayIso)
   const [data, setData] = useState<ScheduleData | null>(null)
   const [filterOptions, setFilterOptions] = useState<ScheduleFilterOptions | null>(null)
@@ -98,6 +108,11 @@ export function SchedulePage({ vkUserId, studioName, onBack }: SchedulePageProps
           <h2 className="schedule-hero__title">{dayLabel}</h2>
           {data?.dateLabel && (
             <p className="schedule-hero__subtitle">{data.dateLabel}</p>
+          )}
+          {guestMode && (
+            <p className="schedule-hero__guest-hint">
+              Можно записаться без входа — для первого визита действует пробное занятие.
+            </p>
           )}
         </section>
 
@@ -241,8 +256,10 @@ export function SchedulePage({ vkUserId, studioName, onBack }: SchedulePageProps
           dayLabel={data.dayLabel}
           vkUserId={vkUserId}
           studioName={studioName}
+          authenticated={authenticated}
           onClose={() => setSelectedClass(null)}
           onBooked={() => void load(selectedDate, true)}
+          onAuthenticated={onAuthenticated}
           onError={setError}
         />
       )}

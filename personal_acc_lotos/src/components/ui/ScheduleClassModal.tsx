@@ -1,20 +1,38 @@
+import { FormItem, Input } from '@vkontakte/vkui'
 import { useState } from 'react'
-import { bookScheduleClass } from '../../api/schedule'
+import {
+  bookScheduleClass,
+  checkBookingEligibility,
+  checkGuestBooking,
+} from '../../api/schedule'
 import { ApiError } from '../../api/client'
-import type { BookScheduleResult, ScheduleClass } from '../../types/schedule'
+import type { BookScheduleResult, BookingEligibility, ScheduleClass } from '../../types/schedule'
+import { formatMoney } from '../../utils/format'
 import { AddToCalendarButton } from './AddToCalendarButton'
 import './ScheduleClassModal.css'
 
-type ModalMode = 'details' | 'confirm' | 'success'
+type ModalMode = 'details' | 'guest' | 'confirm' | 'success'
 
 type ScheduleClassModalProps = {
   item: ScheduleClass
   dayLabel: string
   vkUserId: number
   studioName: string
+  authenticated: boolean
   onClose: () => void
   onBooked: () => void
+  onAuthenticated?: () => void
   onError: (message: string) => void
+}
+
+function formatClassPrice(item: ScheduleClass, trialHint = false): string | null {
+  if (trialHint && item.trialPrice != null) {
+    return `Пробное: ${formatMoney(item.trialPrice)}`
+  }
+  if (item.priceMin != null) {
+    return formatMoney(item.priceMin)
+  }
+  return null
 }
 
 export function ScheduleClassModal({
@@ -22,21 +40,34 @@ export function ScheduleClassModal({
   dayLabel,
   vkUserId,
   studioName,
+  authenticated,
   onClose,
   onBooked,
+  onAuthenticated,
   onError,
 }: ScheduleClassModalProps) {
   const [mode, setMode] = useState<ModalMode>('details')
   const [booking, setBooking] = useState(false)
   const [result, setResult] = useState<BookScheduleResult | null>(null)
+  const [phoneInput, setPhoneInput] = useState('')
+  const [nameInput, setNameInput] = useState('')
+  const [guestError, setGuestError] = useState<string | null>(null)
+  const [eligibility, setEligibility] = useState<BookingEligibility | null>(null)
+  const [checking, setChecking] = useState(false)
 
   const isFull = item.isFull
   const canBook = !isFull
+  const showTrialPrice = item.hasTrial && item.trialPrice != null
+  const regularPrice = formatClassPrice(item)
+  const trialPriceLabel = formatClassPrice(item, true)
 
   const handleClose = () => {
     if (booking) return
     if (mode === 'success') {
       onBooked()
+      if (!authenticated) {
+        onAuthenticated?.()
+      }
     }
     onClose()
   }
@@ -44,14 +75,59 @@ export function ScheduleClassModal({
   const handleBook = async () => {
     setBooking(true)
     try {
-      const response = await bookScheduleClass(vkUserId, item.id, item.date)
+      const guest =
+        !authenticated && phoneInput.trim() && nameInput.trim()
+          ? { phone: phoneInput.trim(), name: nameInput.trim() }
+          : undefined
+      const response = await bookScheduleClass(
+        vkUserId,
+        item.id,
+        item.date,
+        guest,
+      )
       setResult(response)
       setMode('success')
     } catch (err) {
       onError(err instanceof ApiError ? err.message : 'Не удалось записаться на занятие')
-      setMode('details')
+      setMode(authenticated ? 'details' : 'guest')
     } finally {
       setBooking(false)
+    }
+  }
+
+  const startBooking = async () => {
+    if (authenticated) {
+      setChecking(true)
+      setEligibility(null)
+      try {
+        const result = await checkBookingEligibility(vkUserId, item.id, item.date)
+        setEligibility(result)
+        setMode('confirm')
+      } catch (err) {
+        onError(err instanceof ApiError ? err.message : 'Не удалось проверить возможность записи')
+      } finally {
+        setChecking(false)
+      }
+      return
+    }
+    setGuestError(null)
+    setMode('guest')
+  }
+
+  const handleGuestNext = async () => {
+    setChecking(true)
+    setGuestError(null)
+    try {
+      const result = await checkGuestBooking(phoneInput.trim())
+      if (!result.allowed) {
+        setGuestError(result.message ?? 'Войдите по номеру телефона, чтобы записаться.')
+        return
+      }
+      setMode('confirm')
+    } catch (err) {
+      onError(err instanceof ApiError ? err.message : 'Не удалось проверить номер телефона')
+    } finally {
+      setChecking(false)
     }
   }
 
@@ -81,6 +157,11 @@ export function ScheduleClassModal({
             <div className="schedule-modal__success-icon" aria-hidden="true">✓</div>
             <h2 className="schedule-modal__success-title">Вы записаны!</h2>
             <p className="schedule-modal__success-text">{result.message}</p>
+            {result.isTrial && (
+              <p className="schedule-modal__trial-note">
+                Запись оформлена как пробное занятие по цене студии.
+              </p>
+            )}
             <dl className="schedule-modal__success-summary">
               <div className="schedule-modal__detail">
                 <dt>Занятие</dt>
@@ -136,28 +217,124 @@ export function ScheduleClassModal({
               >
                 {isFull ? 'Нет мест' : 'Есть свободные места'}
               </span>
+              {(regularPrice || showTrialPrice) && (
+                <div className="schedule-modal__prices">
+                  {regularPrice && (
+                    <span className="schedule-modal__price">{regularPrice}</span>
+                  )}
+                  {showTrialPrice && trialPriceLabel && (
+                    <span className="schedule-modal__price schedule-modal__price--trial">
+                      {trialPriceLabel}
+                    </span>
+                  )}
+                </div>
+              )}
             </header>
 
-            {mode === 'confirm' ? (
+            {mode === 'guest' ? (
               <section className="schedule-modal__section">
-                <h3 className="lotos-section-title">Подтвердите запись</h3>
+                <h3 className="lotos-section-title">Запись без входа</h3>
                 <p className="schedule-modal__confirm-text">
-                  Записать вас на «{item.serviceTitle}» {item.dateLabel} в {item.time}?
-                  Тренер: {item.trainer}.
+                  Без входа можно записаться только на первое пробное занятие.
+                  {showTrialPrice
+                    ? ' Если вы ещё не были в студии, запись оформится по пробной цене.'
+                    : ' Укажите телефон и имя.'}
                 </p>
+                <FormItem top="Телефон" htmlFor="book-phone">
+                  <Input
+                    id="book-phone"
+                    type="tel"
+                    inputMode="tel"
+                    placeholder="8 999 123 45 67"
+                    value={phoneInput}
+                    onChange={(event) => setPhoneInput(event.target.value)}
+                    disabled={booking}
+                  />
+                </FormItem>
+                <FormItem top="Имя" htmlFor="book-name">
+                  <Input
+                    id="book-name"
+                    placeholder="Как к вам обращаться"
+                    value={nameInput}
+                    onChange={(event) => setNameInput(event.target.value)}
+                    disabled={booking || checking}
+                  />
+                </FormItem>
+                {guestError && (
+                  <div className="schedule-modal__guest-error">
+                    <p className="schedule-modal__hint schedule-modal__hint--error" role="alert">
+                      {guestError}
+                    </p>
+                    {onAuthenticated && (
+                      <button
+                        type="button"
+                        className="lotos-btn lotos-btn--secondary lotos-btn--stretched"
+                        onClick={() => {
+                          onClose()
+                          onAuthenticated()
+                        }}
+                      >
+                        Войти по номеру телефона
+                      </button>
+                    )}
+                  </div>
+                )}
                 <div className="schedule-modal__actions">
                   <button
                     type="button"
                     className="lotos-btn lotos-btn--secondary"
-                    disabled={booking}
-                    onClick={() => setMode('details')}
+                    disabled={booking || checking}
+                    onClick={() => {
+                      setGuestError(null)
+                      setMode('details')
+                    }}
                   >
                     Назад
                   </button>
                   <button
                     type="button"
                     className="lotos-btn lotos-btn--primary"
+                    disabled={booking || checking || !phoneInput.trim() || !nameInput.trim()}
+                    onClick={() => void handleGuestNext()}
+                  >
+                    {checking ? 'Проверяем…' : 'Далее'}
+                  </button>
+                </div>
+              </section>
+            ) : mode === 'confirm' ? (
+              <section className="schedule-modal__section">
+                <h3 className="lotos-section-title">Подтвердите запись</h3>
+                <p className="schedule-modal__confirm-text">
+                  Записать на «{item.serviceTitle}» {item.dateLabel} в {item.time}?
+                  Тренер: {item.trainer}.
+                  {!authenticated && showTrialPrice && (
+                    <> Для новых клиентов — {trialPriceLabel}.</>
+                  )}
+                  {authenticated && eligibility?.isTrial && showTrialPrice && (
+                    <> Запись оформится как пробное занятие — {trialPriceLabel}.</>
+                  )}
+                  {authenticated && eligibility && !eligibility.isTrial && item.requiresAbonement && (
+                    <> Запись по абонементу.</>
+                  )}
+                </p>
+                {eligibility && !eligibility.canBook && eligibility.message && (
+                  <p className="schedule-modal__hint schedule-modal__hint--error" role="alert">
+                    {eligibility.message}
+                  </p>
+                )}
+                <div className="schedule-modal__actions">
+                  <button
+                    type="button"
+                    className="lotos-btn lotos-btn--secondary"
                     disabled={booking}
+                    onClick={() => setMode(authenticated ? 'details' : 'guest')}
+                  >
+                    Назад
+                  </button>
+                  <button
+                    type="button"
+                    className="lotos-btn lotos-btn--primary"
+                    disabled={booking || (authenticated && eligibility !== null && !eligibility.canBook)}
                     onClick={() => void handleBook()}
                   >
                     {booking ? 'Записываем…' : 'Подтвердить'}
@@ -213,6 +390,13 @@ export function ScheduleClassModal({
                   </section>
                 )}
 
+                {showTrialPrice && !authenticated && (
+                  <p className="schedule-modal__trial-note">
+                    Первый визит — пробное занятие {trialPriceLabel}
+                    {regularPrice ? ` вместо ${regularPrice}` : ''}.
+                  </p>
+                )}
+
                 {isFull ? (
                   <p className="schedule-modal__hint schedule-modal__hint--muted">
                     Группа заполнена. Выберите другое время или напишите администратору студии.
@@ -224,9 +408,10 @@ export function ScheduleClassModal({
                     <button
                       type="button"
                       className="lotos-btn lotos-btn--primary lotos-btn--stretched"
-                      onClick={() => setMode('confirm')}
+                      disabled={checking}
+                      onClick={() => void startBooking()}
                     >
-                      Записаться
+                      {checking ? 'Проверяем…' : 'Записаться'}
                     </button>
                   )}
                   <button

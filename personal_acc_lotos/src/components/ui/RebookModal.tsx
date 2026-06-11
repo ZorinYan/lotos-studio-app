@@ -61,6 +61,7 @@ export function RebookModal({
           dayLabel={selectedClass.dateLabel}
           vkUserId={vkUserId}
           studioName={studioName}
+          authenticated
           onClose={() => setSelectedClass(null)}
           onBooked={() => {
             onBooked()

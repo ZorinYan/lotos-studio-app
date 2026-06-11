@@ -36,6 +36,16 @@
   color: var(--lotos-text-muted);
 }
 
+.schedule-hero__guest-hint {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-radius: var(--lotos-radius-sm);
+  background: rgba(90, 125, 98, 0.1);
+  color: var(--lotos-success);
+  font-size: var(--lotos-caption);
+  line-height: 1.45;
+}
+
 .schedule-days {
   display: flex;
   gap: 8px;

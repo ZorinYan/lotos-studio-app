@@ -11,7 +11,7 @@ from auth_service import (
     logout,
     verify_name,
 )
-from booking_api import book_schedule_class
+from booking_api import book_schedule_class, check_booking_eligibility, check_guest_booking
 from cabinet_api import load_cabinet
 from home_api import load_home
 from records_api import cancel_record, load_records
@@ -49,6 +49,12 @@ class VerifyRequest(VkUserRequest):
 class BookScheduleRequest(VkUserRequest):
     activity_id: int = Field(gt=0)
     activity_date: str | None = None
+    phone: str | None = None
+    name: str | None = None
+
+
+class GuestCheckRequest(BaseModel):
+    phone: str = Field(min_length=5, max_length=30)
 
 
 class CancelRecordRequest(VkUserRequest):
@@ -213,6 +219,40 @@ def records_cancel(body: CancelRecordRequest):
         ) from error
 
 
+@app.post("/api/schedule/guest-check")
+def schedule_guest_check(body: GuestCheckRequest):
+    try:
+        return check_guest_booking(body.phone, _cfg())
+    except AuthError as error:
+        status = 400
+        if error.code in {"service_unavailable", "fetch_error"}:
+            status = 503
+        raise HTTPException(
+            status_code=status,
+            detail={"code": error.code, "message": str(error)},
+        ) from error
+
+
+@app.get("/api/schedule/book/eligibility")
+def schedule_book_eligibility(vk_user_id: int, activity_id: int, activity_date: str | None = None):
+    if vk_user_id <= 0:
+        raise HTTPException(status_code=400, detail="Некорректный vk_user_id")
+    if activity_id <= 0:
+        raise HTTPException(status_code=400, detail="Некорректный activity_id")
+    try:
+        return check_booking_eligibility(vk_user_id, activity_id, activity_date, _cfg())
+    except AuthError as error:
+        status = 400
+        if error.code == "not_authenticated":
+            status = 401
+        elif error.code in {"service_unavailable", "fetch_error"}:
+            status = 503
+        raise HTTPException(
+            status_code=status,
+            detail={"code": error.code, "message": str(error)},
+        ) from error
+
+
 @app.post("/api/schedule/book")
 def schedule_book(body: BookScheduleRequest):
     try:
@@ -221,6 +261,8 @@ def schedule_book(body: BookScheduleRequest):
             body.activity_id,
             body.activity_date,
             _cfg(),
+            guest_phone=body.phone,
+            guest_name=body.name,
         )
     except AuthError as error:
         status = 400
