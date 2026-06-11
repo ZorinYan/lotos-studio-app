@@ -34,7 +34,7 @@ export function RecordsPage({ vkUserId, studioName, onBack }: RecordsPageProps) 
     setError(null)
 
     try {
-      const records = await fetchRecords(vkUserId, nextFilter)
+      const records = await fetchRecords(vkUserId, nextFilter, isRefresh)
       setData(records)
       setFilter(records.filter)
     } catch (err) {

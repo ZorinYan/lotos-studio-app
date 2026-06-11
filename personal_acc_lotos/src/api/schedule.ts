@@ -6,15 +6,20 @@ import type {
   ScheduleData,
   ScheduleFilterOptions,
 } from '../types/schedule'
-import { apiFetch } from './client'
+import { apiFetch, withRefresh } from './client'
 
-export function fetchSchedule(date?: string) {
-  const query = date ? `?day=${encodeURIComponent(date)}` : ''
-  return apiFetch<ScheduleData>(`/api/schedule${query}`)
+export function fetchSchedule(date?: string, refresh = false) {
+  const params = new URLSearchParams()
+  if (date) params.set('day', date)
+  const query = params.toString()
+  const path = query ? `/api/schedule?${query}` : '/api/schedule'
+  return apiFetch<ScheduleData>(withRefresh(path, refresh))
 }
 
-export function fetchScheduleFilters() {
-  return apiFetch<ScheduleFilterOptions>('/api/schedule/filters')
+export function fetchScheduleFilters(refresh = false) {
+  return apiFetch<ScheduleFilterOptions>(
+    withRefresh('/api/schedule/filters', refresh),
+  )
 }
 
 export function fetchRebookSlots(vkUserId: number) {

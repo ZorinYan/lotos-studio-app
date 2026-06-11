@@ -46,9 +46,15 @@ export function SchedulePage({
     setError(null)
 
     try {
-      const schedule = await fetchSchedule(date)
+      const [schedule, filters] = await Promise.all([
+        fetchSchedule(date, isRefresh),
+        isRefresh ? fetchScheduleFilters(true) : Promise.resolve(null),
+      ])
       setData(schedule)
       setSelectedDate(schedule.date)
+      if (filters) {
+        setFilterOptions(filters)
+      }
     } catch (err) {
       const message =
         err instanceof ApiError ? err.message : 'Не удалось загрузить расписание'

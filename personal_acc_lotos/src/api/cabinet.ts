@@ -1,6 +1,8 @@
 import type { CabinetData } from '../types/cabinet'
-import { apiFetch } from './client'
+import { apiFetch, withRefresh } from './client'
 
-export function fetchCabinet(vkUserId: number) {
-  return apiFetch<CabinetData>(`/api/cabinet?vk_user_id=${vkUserId}`)
+export function fetchCabinet(vkUserId: number, refresh = false) {
+  return apiFetch<CabinetData>(
+    withRefresh(`/api/cabinet?vk_user_id=${vkUserId}`, refresh),
+  )
 }

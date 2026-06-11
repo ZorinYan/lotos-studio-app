@@ -5,7 +5,11 @@ import requests
 from _lib_path import ensure_lib_path
 from calendar_utils import event_window
 from miniapp_config import MiniAppConfig
-from schedule_cache import activities_for_date, fetch_schedule_activities
+from schedule_cache import (
+    activities_for_date,
+    fetch_schedule_activities,
+    invalidate_schedule_cache,
+)
 from yclients_adapter import (
     YClientsError,
     YClientsPermissionError,
@@ -127,15 +131,23 @@ def _serialize_activity(activity: dict) -> dict | None:
     }
 
 
-def load_schedule(target_date: date, config: MiniAppConfig) -> dict:
+def load_schedule(
+    target_date: date,
+    config: MiniAppConfig,
+    *,
+    force_refresh: bool = False,
+) -> dict:
     today = date.today()
     if target_date < today:
         target_date = today
 
     yclients = create_yclients_client(config)
+    if force_refresh:
+        invalidate_schedule_cache(yclients.config.yclients_company_id)
+
     try:
         activities = activities_for_date(
-            fetch_schedule_activities(yclients),
+            fetch_schedule_activities(yclients, use_cache=not force_refresh),
             target_date,
         )
     except YClientsPermissionError:

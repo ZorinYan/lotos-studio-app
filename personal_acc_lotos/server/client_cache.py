@@ -1,4 +1,4 @@
-"""Кэш данных клиента (главная, кабинет) — TTL 10 мин."""
+"""Кэш данных клиента (главная, кабинет, записи) — TTL 10 мин."""
 
 from __future__ import annotations
 
@@ -21,6 +21,7 @@ _usage_visits: dict[str, tuple[float, list[dict]]] = {}
 _home_response: dict[int, tuple[float, dict[str, Any]]] = {}
 _cabinet_response: dict[int, tuple[float, dict[str, Any]]] = {}
 _rebook_preview: dict[int, tuple[float, dict[str, Any]]] = {}
+_records_bundle: dict[int, tuple[float, dict[str, Any]]] = {}
 
 
 def _phone_key(company_id: int, phone: str) -> str:
@@ -31,14 +32,39 @@ def _is_fresh(expires_at: float) -> bool:
     return expires_at > time.monotonic()
 
 
-def fetch_cabinet_data(yclients: YClientsClient, phone: str) -> CabinetData:
+def clear_client_data_caches(
+    vk_user_id: int,
+    *,
+    phone: str | None = None,
+    company_id: int | None = None,
+) -> None:
+    """Сброс кэша перед принудительным обновлением из YClients."""
+    with _lock:
+        _home_response.pop(vk_user_id, None)
+        _cabinet_response.pop(vk_user_id, None)
+        _rebook_preview.pop(vk_user_id, None)
+        _records_bundle.pop(vk_user_id, None)
+
+        if phone and company_id:
+            key = _phone_key(company_id, phone)
+            _cabinet_raw.pop(key, None)
+            _usage_visits.pop(key, None)
+
+
+def fetch_cabinet_data(
+    yclients: YClientsClient,
+    phone: str,
+    *,
+    use_cache: bool = True,
+) -> CabinetData:
     company_id = yclients.config.yclients_company_id
     key = _phone_key(company_id, phone)
 
-    with _lock:
-        entry = _cabinet_raw.get(key)
-        if entry and _is_fresh(entry[0]):
-            return entry[1]
+    if use_cache:
+        with _lock:
+            entry = _cabinet_raw.get(key)
+            if entry and _is_fresh(entry[0]):
+                return entry[1]
 
     data = CabinetService(yclients).load(phone)
 
@@ -52,14 +78,16 @@ def fetch_abonement_usage_visits(
     phone: str,
     *,
     limit: int = 5,
+    use_cache: bool = True,
 ) -> list[dict]:
     company_id = yclients.config.yclients_company_id
     key = _phone_key(company_id, phone)
 
-    with _lock:
-        entry = _usage_visits.get(key)
-        if entry and _is_fresh(entry[0]):
-            return entry[1]
+    if use_cache:
+        with _lock:
+            entry = _usage_visits.get(key)
+            if entry and _is_fresh(entry[0]):
+                return entry[1]
 
     try:
         visits = yclients.get_abonement_usage_visits(phone, limit=limit)
@@ -116,6 +144,22 @@ def set_cached_rebook_preview(vk_user_id: int, payload: dict[str, Any]) -> None:
         )
 
 
+def get_cached_records(vk_user_id: int) -> dict[str, Any] | None:
+    with _lock:
+        entry = _records_bundle.get(vk_user_id)
+        if entry and _is_fresh(entry[0]):
+            return entry[1]
+    return None
+
+
+def set_cached_records(vk_user_id: int, payload: dict[str, Any]) -> None:
+    with _lock:
+        _records_bundle[vk_user_id] = (
+            time.monotonic() + CLIENT_CACHE_TTL_SEC,
+            payload,
+        )
+
+
 def invalidate_client_cache(
     *,
     vk_user_id: int | None = None,
@@ -127,6 +171,7 @@ def invalidate_client_cache(
             _home_response.pop(vk_user_id, None)
             _cabinet_response.pop(vk_user_id, None)
             _rebook_preview.pop(vk_user_id, None)
+            _records_bundle.pop(vk_user_id, None)
 
         if phone and company_id:
             key = _phone_key(company_id, phone)

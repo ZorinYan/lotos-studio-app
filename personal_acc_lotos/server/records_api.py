@@ -13,21 +13,70 @@ from yclients_adapter import (
 
 ensure_lib_path()
 
-from client_cache import invalidate_client_cache
+from client_cache import (  # noqa: E402
+    clear_client_data_caches,
+    fetch_cabinet_data,
+    get_cached_records,
+    invalidate_client_cache,
+    set_cached_records,
+)
 from utils import storage  # noqa: E402
 from auth_service import AuthError  # noqa: E402
 
 VALID_FILTERS = {"all", "upcoming", "past"}
 
 
-def _load_profile(vk_user_id: int, config: MiniAppConfig) -> tuple[str, dict]:
+def _build_records_bundle(serialized: list[dict]) -> dict:
+    upcoming = [item for item in serialized if item["isUpcoming"]]
+    past = [item for item in serialized if not item["isUpcoming"]]
+
+    upcoming.sort(key=lambda item: f"{item.get('date') or ''} {item.get('time') or ''}")
+    past.sort(
+        key=lambda item: f"{item.get('date') or ''} {item.get('time') or ''}",
+        reverse=True,
+    )
+    all_records = upcoming + past
+
+    return {
+        "counts": {
+            "all": len(all_records),
+            "upcoming": len(upcoming),
+            "past": len(past),
+        },
+        "filters": {
+            "all": all_records,
+            "upcoming": upcoming,
+            "past": past,
+        },
+    }
+
+
+def _records_response(record_filter: str, bundle: dict) -> dict:
+    return {
+        "filter": record_filter,
+        "records": bundle["filters"][record_filter],
+        "counts": bundle["counts"],
+    }
+
+
+def _fetch_records_bundle(
+    vk_user_id: int,
+    config: MiniAppConfig,
+    *,
+    use_cache: bool = True,
+) -> dict:
+    if use_cache:
+        cached = get_cached_records(vk_user_id)
+        if cached is not None:
+            return cached
+
     phone = storage.get_phone(vk_user_id)
     if not phone:
         raise AuthError("not_authenticated", "Сначала войдите по номеру телефона.")
 
     yclients = create_yclients_client(config)
     try:
-        profile = yclients.find_client_by_phone(phone)
+        cabinet = fetch_cabinet_data(yclients, phone, use_cache=use_cache)
     except YClientsPermissionError:
         raise AuthError(
             "service_unavailable",
@@ -40,26 +89,15 @@ def _load_profile(vk_user_id: int, config: MiniAppConfig) -> tuple[str, dict]:
             "service_unavailable",
             "Не удалось связаться с YClients. Проверьте интернет и попробуйте снова.",
         ) from None
-
-    if not profile:
+    except ValueError:
         raise AuthError(
             "client_not_found",
             "По этому номеру нет карточки в студии.",
-        )
+        ) from None
 
-    return phone, profile
-
-
-def load_records(vk_user_id: int, record_filter: str, config: MiniAppConfig) -> dict:
-    if record_filter not in VALID_FILTERS:
-        raise AuthError("invalid_filter", "Некорректный фильтр записей.")
-
-    _, profile = _load_profile(vk_user_id, config)
-    yclients = create_yclients_client(config)
     now = datetime.now()
-
     try:
-        raw_records = yclients.get_client_records(profile["id"])
+        raw_records = yclients.get_client_records(cabinet.profile["id"])
     except YClientsPermissionError:
         raise AuthError(
             "service_unavailable",
@@ -78,34 +116,65 @@ def load_records(vk_user_id: int, record_filter: str, config: MiniAppConfig) -> 
         for record in raw_records
         if record.get("id")
     ]
-    upcoming = [item for item in serialized if item["isUpcoming"]]
-    past = [item for item in serialized if not item["isUpcoming"]]
+    bundle = _build_records_bundle(serialized)
+    set_cached_records(vk_user_id, bundle)
+    return bundle
 
-    upcoming.sort(key=lambda item: f"{item.get('date') or ''} {item.get('time') or ''}")
-    past.sort(key=lambda item: f"{item.get('date') or ''} {item.get('time') or ''}", reverse=True)
-    all_records = upcoming + past
 
-    if record_filter == "upcoming":
-        records = upcoming
-    elif record_filter == "past":
-        records = past
-    else:
-        records = all_records
+def load_records(
+    vk_user_id: int,
+    record_filter: str,
+    config: MiniAppConfig,
+    *,
+    force_refresh: bool = False,
+) -> dict:
+    if record_filter not in VALID_FILTERS:
+        raise AuthError("invalid_filter", "Некорректный фильтр записей.")
 
-    return {
-        "filter": record_filter,
-        "records": records,
-        "counts": {
-            "all": len(all_records),
-            "upcoming": len(upcoming),
-            "past": len(past),
-        },
-    }
+    if force_refresh:
+        phone = storage.get_phone(vk_user_id)
+        if phone:
+            clear_client_data_caches(
+                vk_user_id,
+                phone=phone,
+                company_id=config.yclients_company_id,
+            )
+
+    bundle = _fetch_records_bundle(
+        vk_user_id,
+        config,
+        use_cache=not force_refresh,
+    )
+    return _records_response(record_filter, bundle)
 
 
 def cancel_record(vk_user_id: int, record_id: int, config: MiniAppConfig) -> dict:
-    phone, profile = _load_profile(vk_user_id, config)
+    phone = storage.get_phone(vk_user_id)
+    if not phone:
+        raise AuthError("not_authenticated", "Сначала войдите по номеру телефона.")
+
     yclients = create_yclients_client(config)
+    try:
+        cabinet = fetch_cabinet_data(yclients, phone, use_cache=False)
+    except YClientsPermissionError:
+        raise AuthError(
+            "service_unavailable",
+            "Сервис временно недоступен. Обратитесь к администратору студии.",
+        ) from None
+    except YClientsError as error:
+        raise AuthError("fetch_error", str(error)) from error
+    except requests.RequestException:
+        raise AuthError(
+            "service_unavailable",
+            "Не удалось связаться с YClients. Проверьте интернет и попробуйте снова.",
+        ) from None
+    except ValueError:
+        raise AuthError(
+            "client_not_found",
+            "По этому номеру нет карточки в студии.",
+        ) from None
+
+    profile = cabinet.profile
     now = datetime.now()
 
     try:

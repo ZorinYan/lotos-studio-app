@@ -67,8 +67,13 @@ def _resolve_booking_prefs(
     return _infer_last_booking_from_visits(vk_user_id, phone, yclients)
 
 
-def _bookable_activities(yclients, days: int = 14) -> list[dict]:
-    activities = fetch_schedule_activities(yclients, days)
+def _bookable_activities(
+    yclients,
+    days: int = 14,
+    *,
+    use_cache: bool = True,
+) -> list[dict]:
+    activities = fetch_schedule_activities(yclients, days, use_cache=use_cache)
     return [
         item for item in activities if YClientsClient.activity_has_free_spots(item)
     ]
@@ -143,10 +148,16 @@ def _matched_classes(vk_user_id: int, config: MiniAppConfig) -> tuple[dict, list
     return _serialize_prefs(prefs), classes
 
 
-def rebook_preview(vk_user_id: int, config: MiniAppConfig) -> dict:
-    cached = get_cached_rebook_preview(vk_user_id)
-    if cached is not None:
-        return cached
+def rebook_preview(
+    vk_user_id: int,
+    config: MiniAppConfig,
+    *,
+    force_refresh: bool = False,
+) -> dict:
+    if not force_refresh:
+        cached = get_cached_rebook_preview(vk_user_id)
+        if cached is not None:
+            return cached
 
     phone = storage.get_phone(vk_user_id)
     if not phone:
@@ -154,7 +165,7 @@ def rebook_preview(vk_user_id: int, config: MiniAppConfig) -> dict:
 
     yclients = create_yclients_client(config)
     try:
-        cabinet = fetch_cabinet_data(yclients, phone)
+        cabinet = fetch_cabinet_data(yclients, phone, use_cache=not force_refresh)
         recent_visits = cabinet.recent_visits
     except Exception:
         recent_visits = None
@@ -171,7 +182,7 @@ def rebook_preview(vk_user_id: int, config: MiniAppConfig) -> dict:
         return payload
 
     try:
-        activities = _bookable_activities(yclients)
+        activities = _bookable_activities(yclients, use_cache=not force_refresh)
         matched = yclients.filter_activities_like_booking(
             activities,
             staff_id=prefs["staff_id"],

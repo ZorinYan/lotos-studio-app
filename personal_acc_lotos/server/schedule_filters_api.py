@@ -11,11 +11,20 @@ from yclients_adapter import (
 from auth_service import AuthError  # noqa: E402
 
 
-def load_schedule_filters(config: MiniAppConfig) -> dict:
+def load_schedule_filters(
+    config: MiniAppConfig,
+    *,
+    force_refresh: bool = False,
+) -> dict:
     yclients = create_yclients_client(config)
 
+    if force_refresh:
+        from schedule_cache import invalidate_schedule_cache
+
+        invalidate_schedule_cache(yclients.config.yclients_company_id)
+
     try:
-        activities = fetch_schedule_activities(yclients)
+        activities = fetch_schedule_activities(yclients, use_cache=not force_refresh)
     except YClientsPermissionError:
         raise AuthError(
             "service_unavailable",

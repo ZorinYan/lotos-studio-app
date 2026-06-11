@@ -44,6 +44,11 @@ function ensureApiBase(): void {
   )
 }
 
+export function withRefresh(path: string, refresh = false): string {
+  if (!refresh) return path
+  return path.includes('?') ? `${path}&refresh=1` : `${path}?refresh=1`
+}
+
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   ensureApiBase()
 

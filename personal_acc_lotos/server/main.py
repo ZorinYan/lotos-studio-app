@@ -137,9 +137,9 @@ def auth_logout(body: VkUserRequest):
 
 
 @app.get("/api/schedule/filters")
-def schedule_filters():
+def schedule_filters(refresh: bool = False):
     try:
-        return load_schedule_filters(_cfg())
+        return load_schedule_filters(_cfg(), force_refresh=refresh)
     except AuthError as error:
         status = 400
         if error.code in {"service_unavailable", "fetch_error"}:
@@ -169,14 +169,14 @@ def schedule_rebook(vk_user_id: int):
 
 
 @app.get("/api/schedule")
-def schedule(day: str | None = None):
+def schedule(day: str | None = None, refresh: bool = False):
     try:
         target = date.fromisoformat(day) if day else date.today()
     except ValueError:
         raise HTTPException(status_code=400, detail="Некорректная дата") from None
 
     try:
-        return load_schedule(target, _cfg())
+        return load_schedule(target, _cfg(), force_refresh=refresh)
     except AuthError as error:
         status = 400
         if error.code in {"service_unavailable", "fetch_error"}:
@@ -188,11 +188,11 @@ def schedule(day: str | None = None):
 
 
 @app.get("/api/records")
-def records(vk_user_id: int, filter: str = "all"):
+def records(vk_user_id: int, filter: str = "all", refresh: bool = False):
     if vk_user_id <= 0:
         raise HTTPException(status_code=400, detail="Некорректный vk_user_id")
     try:
-        return load_records(vk_user_id, filter, _cfg())
+        return load_records(vk_user_id, filter, _cfg(), force_refresh=refresh)
     except AuthError as error:
         status = 401 if error.code == "not_authenticated" else 400
         if error.code in {"service_unavailable", "fetch_error"}:
@@ -277,11 +277,11 @@ def schedule_book(body: BookScheduleRequest):
 
 
 @app.get("/api/home")
-def home(vk_user_id: int):
+def home(vk_user_id: int, refresh: bool = False):
     if vk_user_id <= 0:
         raise HTTPException(status_code=400, detail="Некорректный vk_user_id")
     try:
-        return load_home(vk_user_id, _cfg())
+        return load_home(vk_user_id, _cfg(), force_refresh=refresh)
     except AuthError as error:
         status = 401 if error.code == "not_authenticated" else 400
         if error.code in {"service_unavailable", "fetch_error"}:
@@ -293,11 +293,11 @@ def home(vk_user_id: int):
 
 
 @app.get("/api/cabinet")
-def cabinet(vk_user_id: int):
+def cabinet(vk_user_id: int, refresh: bool = False):
     if vk_user_id <= 0:
         raise HTTPException(status_code=400, detail="Некорректный vk_user_id")
     try:
-        return load_cabinet(vk_user_id, _cfg())
+        return load_cabinet(vk_user_id, _cfg(), force_refresh=refresh)
     except AuthError as error:
         status = 401 if error.code == "not_authenticated" else 400
         if error.code in {"service_unavailable", "fetch_error"}:

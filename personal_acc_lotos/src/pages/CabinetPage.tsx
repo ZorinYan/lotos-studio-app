@@ -35,7 +35,7 @@ export function CabinetPage({ vkUserId, studioName, onBack, onOpenRecords }: Cab
     setError(null)
 
     try {
-      const cabinet = await fetchCabinet(vkUserId)
+      const cabinet = await fetchCabinet(vkUserId, isRefresh)
       setData(cabinet)
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Не удалось загрузить кабинет')

@@ -3,6 +3,7 @@ import requests
 from _lib_path import ensure_lib_path
 from abonement_serializer import serialize_abonement, serialize_usage_visit
 from client_cache import (
+    clear_client_data_caches,
     fetch_abonement_usage_visits,
     fetch_cabinet_data,
     get_cached_cabinet,
@@ -34,18 +35,31 @@ def _serialize_visit(visit: dict) -> dict:
     }
 
 
-def load_cabinet(vk_user_id: int, config: MiniAppConfig) -> dict:
-    cached = get_cached_cabinet(vk_user_id)
-    if cached is not None:
-        return cached
+def load_cabinet(
+    vk_user_id: int,
+    config: MiniAppConfig,
+    *,
+    force_refresh: bool = False,
+) -> dict:
+    if not force_refresh:
+        cached = get_cached_cabinet(vk_user_id)
+        if cached is not None:
+            return cached
 
     phone = storage.get_phone(vk_user_id)
     if not phone:
         raise AuthError("not_authenticated", "Сначала войдите по номеру телефона.")
 
+    if force_refresh:
+        clear_client_data_caches(
+            vk_user_id,
+            phone=phone,
+            company_id=config.yclients_company_id,
+        )
+
     yclients = create_yclients_client(config)
     try:
-        data = fetch_cabinet_data(yclients, phone)
+        data = fetch_cabinet_data(yclients, phone, use_cache=not force_refresh)
     except YClientsPermissionError:
         raise AuthError(
             "service_unavailable",
@@ -70,7 +84,12 @@ def load_cabinet(vk_user_id: int, config: MiniAppConfig) -> dict:
 
     usage_visits = [
         serialize_usage_visit(visit)
-        for visit in fetch_abonement_usage_visits(yclients, phone, limit=5)
+        for visit in fetch_abonement_usage_visits(
+            yclients,
+            phone,
+            limit=5,
+            use_cache=not force_refresh,
+        )
     ]
 
     payload = {

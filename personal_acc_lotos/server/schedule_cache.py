@@ -34,17 +34,23 @@ def invalidate_schedule_cache(company_id: int | None = None) -> None:
                 del _cache[key]
 
 
-def fetch_schedule_activities(yclients: YClientsClient, days: int = SCHEDULE_DAYS_AHEAD) -> list[dict]:
+def fetch_schedule_activities(
+    yclients: YClientsClient,
+    days: int = SCHEDULE_DAYS_AHEAD,
+    *,
+    use_cache: bool = True,
+) -> list[dict]:
     today = date.today()
     end = today + timedelta(days=days - 1)
     company_id = yclients.config.yclients_company_id
     key = _range_key(company_id, today, end)
     now = time.monotonic()
 
-    with _lock:
-        entry = _cache.get(key)
-        if entry and entry[0] > now:
-            return entry[1]
+    if use_cache:
+        with _lock:
+            entry = _cache.get(key)
+            if entry and entry[0] > now:
+                return entry[1]
 
     activities = yclients.get_schedule_activities(days)
 

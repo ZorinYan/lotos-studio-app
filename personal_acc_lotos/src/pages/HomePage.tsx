@@ -35,19 +35,27 @@ export function HomePage({
 }: HomePageProps) {
   const [homeData, setHomeData] = useState<HomeData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [rebookData, setRebookData] = useState<RebookData | null>(null)
   const [rebookLoading, setRebookLoading] = useState(false)
 
-  const load = useCallback(async () => {
-    setLoading(true)
+  const load = useCallback(async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true)
+    else setLoading(true)
+    setError(null)
+
     try {
-      const data = await fetchHome(vkUserId)
+      const data = await fetchHome(vkUserId, isRefresh)
       setHomeData(data)
-    } catch {
+    } catch (err) {
       setHomeData(null)
+      if (isRefresh) {
+        setError(err instanceof ApiError ? err.message : 'Не удалось обновить данные')
+      }
     } finally {
       setLoading(false)
+      setRefreshing(false)
     }
   }, [vkUserId])
 
@@ -186,6 +194,17 @@ export function HomePage({
           <span className="home-feature__arrow" aria-hidden="true">→</span>
         </section>
 
+        {!loading && (
+          <button
+            type="button"
+            className="lotos-btn lotos-btn--secondary lotos-btn--stretched"
+            disabled={refreshing}
+            onClick={() => void load(true)}
+          >
+            {refreshing ? 'Обновляем…' : 'Обновить данные'}
+          </button>
+        )}
+
         <button type="button" className="lotos-btn lotos-btn--ghost lotos-btn--stretched" onClick={onLogout}>
           Выйти из аккаунта
         </button>
@@ -198,7 +217,7 @@ export function HomePage({
           vkUserId={vkUserId}
           studioName={displayStudio}
           onClose={() => setRebookData(null)}
-          onBooked={() => void load()}
+          onBooked={() => void load(true)}
           onError={setError}
         />
       )}
