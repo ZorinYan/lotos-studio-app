@@ -1,0 +1,23 @@
+# Пинг Render API, чтобы free-инстанс не засыпал (~15 мин без запросов).
+# Надёжнее платного плана Render нет, но для мини-приложения обычно хватает.
+name: Render keep-alive
+
+on:
+  schedule:
+    # GitHub cron — UTC. Каждые 10 минут (чаще 15-минутного таймаута сна Render).
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: render-keepalive
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Ping /health
+        run: |
+          curl -fsS --retry 2 --retry-delay 5 --max-time 45 \
+            "https://lotos-studio-app.onrender.com/health"
