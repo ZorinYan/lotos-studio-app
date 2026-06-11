@@ -1,4 +1,4 @@
-"""Кэш расписания YClients (TTL 3 мин) — один запрос на 14 дней вместо множества."""
+"""Кэш расписания YClients (TTL 10 мин) — один запрос на 14 дней вместо множества."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ ensure_lib_path()
 
 from yclients.client import YClientsClient  # noqa: E402
 
-SCHEDULE_CACHE_TTL_SEC = 180
+SCHEDULE_CACHE_TTL_SEC = 600
 SCHEDULE_DAYS_AHEAD = 14
 
 _lock = threading.Lock()

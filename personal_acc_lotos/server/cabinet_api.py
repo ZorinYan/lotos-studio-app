@@ -2,6 +2,12 @@ import requests
 
 from _lib_path import ensure_lib_path
 from abonement_serializer import serialize_abonement, serialize_usage_visit
+from client_cache import (
+    fetch_abonement_usage_visits,
+    fetch_cabinet_data,
+    get_cached_cabinet,
+    set_cached_cabinet,
+)
 from miniapp_config import MiniAppConfig
 from record_serializer import serialize_record, service_titles, staff_name
 from yclients_adapter import (
@@ -12,7 +18,6 @@ from yclients_adapter import (
 
 ensure_lib_path()
 
-from services.cabinet import CabinetService  # noqa: E402
 from utils import storage  # noqa: E402
 from utils.phone import format_phone_display  # noqa: E402
 from yclients.formatters_cabinet import _client_name  # noqa: E402
@@ -30,14 +35,17 @@ def _serialize_visit(visit: dict) -> dict:
 
 
 def load_cabinet(vk_user_id: int, config: MiniAppConfig) -> dict:
+    cached = get_cached_cabinet(vk_user_id)
+    if cached is not None:
+        return cached
+
     phone = storage.get_phone(vk_user_id)
     if not phone:
         raise AuthError("not_authenticated", "Сначала войдите по номеру телефона.")
 
     yclients = create_yclients_client(config)
-    service = CabinetService(yclients)
     try:
-        data = service.load(phone)
+        data = fetch_cabinet_data(yclients, phone)
     except YClientsPermissionError:
         raise AuthError(
             "service_unavailable",
@@ -60,16 +68,12 @@ def load_cabinet(vk_user_id: int, config: MiniAppConfig) -> dict:
     profile = data.profile
     client_name = _client_name(profile)
 
-    usage_visits: list[dict] = []
-    try:
-        usage_visits = [
-            serialize_usage_visit(visit)
-            for visit in yclients.get_abonement_usage_visits(phone, limit=5)
-        ]
-    except Exception:
-        pass
+    usage_visits = [
+        serialize_usage_visit(visit)
+        for visit in fetch_abonement_usage_visits(yclients, phone, limit=5)
+    ]
 
-    return {
+    payload = {
         "profile": {
             "name": client_name,
             "phone": phone,
@@ -89,3 +93,5 @@ def load_cabinet(vk_user_id: int, config: MiniAppConfig) -> dict:
         "upcomingRecords": [serialize_record(record) for record in data.upcoming_records],
         "recentVisits": [_serialize_visit(visit) for visit in data.recent_visits],
     }
+    set_cached_cabinet(vk_user_id, payload)
+    return payload

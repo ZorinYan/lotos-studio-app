@@ -161,4 +161,7 @@ def verify_name(
 
 
 def logout(vk_user_id: int) -> None:
+    from client_cache import invalidate_client_cache
+
+    invalidate_client_cache(vk_user_id=vk_user_id)
     storage.clear_phone(vk_user_id)

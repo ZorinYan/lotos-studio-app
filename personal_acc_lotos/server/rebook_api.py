@@ -1,8 +1,14 @@
 import requests
 
 from _lib_path import ensure_lib_path
+from client_cache import (
+    fetch_cabinet_data,
+    get_cached_rebook_preview,
+    set_cached_rebook_preview,
+)
 from miniapp_config import MiniAppConfig
 from schedule_api import _serialize_activity
+from schedule_cache import fetch_schedule_activities
 from yclients_adapter import (
     YClientsError,
     YClientsPermissionError,
@@ -17,12 +23,7 @@ from yclients.client import YClientsClient  # noqa: E402
 from auth_service import AuthError  # noqa: E402
 
 
-def _infer_last_booking_from_visits(vk_user_id: int, phone: str, yclients) -> dict | None:
-    try:
-        visits = yclients.get_recent_visits(phone, limit=8)
-    except (YClientsError, YClientsPermissionError, requests.RequestException):
-        return None
-
+def _prefs_from_visits(vk_user_id: int, visits: list[dict]) -> dict | None:
     for visit in visits:
         staff = visit.get("staff", {})
         staff_id = staff.get("id")
@@ -41,11 +42,36 @@ def _infer_last_booking_from_visits(vk_user_id: int, phone: str, yclients) -> di
     return None
 
 
-def _resolve_booking_prefs(vk_user_id: int, phone: str, yclients) -> dict | None:
+def _infer_last_booking_from_visits(vk_user_id: int, phone: str, yclients) -> dict | None:
+    try:
+        visits = yclients.get_recent_visits(phone, limit=8)
+    except (YClientsError, YClientsPermissionError, requests.RequestException):
+        return None
+    return _prefs_from_visits(vk_user_id, visits)
+
+
+def _resolve_booking_prefs(
+    vk_user_id: int,
+    phone: str,
+    yclients,
+    *,
+    recent_visits: list[dict] | None = None,
+) -> dict | None:
     prefs = user_prefs.get_last_booking(vk_user_id)
     if prefs:
         return prefs
+    if recent_visits:
+        prefs = _prefs_from_visits(vk_user_id, recent_visits)
+        if prefs:
+            return prefs
     return _infer_last_booking_from_visits(vk_user_id, phone, yclients)
+
+
+def _bookable_activities(yclients, days: int = 14) -> list[dict]:
+    activities = fetch_schedule_activities(yclients, days)
+    return [
+        item for item in activities if YClientsClient.activity_has_free_spots(item)
+    ]
 
 
 def _serialize_prefs(prefs: dict) -> dict:
@@ -63,7 +89,18 @@ def _matched_classes(vk_user_id: int, config: MiniAppConfig) -> tuple[dict, list
         raise AuthError("not_authenticated", "Сначала войдите по номеру телефона.")
 
     yclients = create_yclients_client(config)
-    prefs = _resolve_booking_prefs(vk_user_id, phone, yclients)
+    try:
+        cabinet = fetch_cabinet_data(yclients, phone)
+        recent_visits = cabinet.recent_visits
+    except Exception:
+        recent_visits = None
+
+    prefs = _resolve_booking_prefs(
+        vk_user_id,
+        phone,
+        yclients,
+        recent_visits=recent_visits,
+    )
     if not prefs:
         raise AuthError(
             "rebook_unavailable",
@@ -71,7 +108,7 @@ def _matched_classes(vk_user_id: int, config: MiniAppConfig) -> tuple[dict, list
         )
 
     try:
-        activities = yclients.get_bookable_activities(14)
+        activities = _bookable_activities(yclients)
         matched = yclients.filter_activities_like_booking(
             activities,
             staff_id=prefs["staff_id"],
@@ -107,17 +144,34 @@ def _matched_classes(vk_user_id: int, config: MiniAppConfig) -> tuple[dict, list
 
 
 def rebook_preview(vk_user_id: int, config: MiniAppConfig) -> dict:
+    cached = get_cached_rebook_preview(vk_user_id)
+    if cached is not None:
+        return cached
+
     phone = storage.get_phone(vk_user_id)
     if not phone:
         return {"available": False}
 
     yclients = create_yclients_client(config)
-    prefs = _resolve_booking_prefs(vk_user_id, phone, yclients)
+    try:
+        cabinet = fetch_cabinet_data(yclients, phone)
+        recent_visits = cabinet.recent_visits
+    except Exception:
+        recent_visits = None
+
+    prefs = _resolve_booking_prefs(
+        vk_user_id,
+        phone,
+        yclients,
+        recent_visits=recent_visits,
+    )
     if not prefs:
-        return {"available": False}
+        payload = {"available": False}
+        set_cached_rebook_preview(vk_user_id, payload)
+        return payload
 
     try:
-        activities = yclients.get_bookable_activities(14)
+        activities = _bookable_activities(yclients)
         matched = yclients.filter_activities_like_booking(
             activities,
             staff_id=prefs["staff_id"],
@@ -125,13 +179,17 @@ def rebook_preview(vk_user_id: int, config: MiniAppConfig) -> dict:
             service_id=prefs.get("service_id"),
         )
     except Exception:
-        return {"available": False, "prefs": _serialize_prefs(prefs)}
+        payload = {"available": False, "prefs": _serialize_prefs(prefs)}
+        set_cached_rebook_preview(vk_user_id, payload)
+        return payload
 
-    return {
+    payload = {
         "available": len(matched) > 0,
         "slotsCount": len(matched),
         "prefs": _serialize_prefs(prefs),
     }
+    set_cached_rebook_preview(vk_user_id, payload)
+    return payload
 
 
 def load_rebook_slots(vk_user_id: int, config: MiniAppConfig) -> dict:

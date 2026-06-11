@@ -13,6 +13,7 @@ from yclients_adapter import (
 
 ensure_lib_path()
 
+from client_cache import invalidate_client_cache
 from utils import storage  # noqa: E402
 from auth_service import AuthError  # noqa: E402
 
@@ -103,7 +104,7 @@ def load_records(vk_user_id: int, record_filter: str, config: MiniAppConfig) -> 
 
 
 def cancel_record(vk_user_id: int, record_id: int, config: MiniAppConfig) -> dict:
-    _, profile = _load_profile(vk_user_id, config)
+    phone, profile = _load_profile(vk_user_id, config)
     yclients = create_yclients_client(config)
     now = datetime.now()
 
@@ -142,6 +143,12 @@ def cancel_record(vk_user_id: int, record_id: int, config: MiniAppConfig) -> dic
             "service_unavailable",
             "Не удалось связаться с YClients. Проверьте интернет и попробуйте снова.",
         ) from None
+
+    invalidate_client_cache(
+        vk_user_id=vk_user_id,
+        phone=phone,
+        company_id=config.yclients_company_id,
+    )
 
     return {
         "success": True,

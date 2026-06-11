@@ -23,6 +23,7 @@ from booking_rules import (
     requires_abonement,
 )
 from rebook_api import remember_booking_from_activity
+from client_cache import invalidate_client_cache
 from schedule_cache import invalidate_schedule_cache
 
 from auth_service import AuthError  # noqa: E402
@@ -240,6 +241,11 @@ def book_schedule_class(
 
     remember_booking_from_activity(vk_user_id, activity)
     invalidate_schedule_cache(config.yclients_company_id)
+    invalidate_client_cache(
+        vk_user_id=vk_user_id,
+        phone=phone,
+        company_id=config.yclients_company_id,
+    )
     serialized = _serialize_activity(activity)
     message = (
         "Вы записаны на пробное занятие."
