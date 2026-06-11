@@ -1,16 +1,14 @@
 # Пинг Render API, чтобы free-инстанс не засыпал (~15 мин без запросов).
-# Надёжнее платного плана Render нет, но для мини-приложения обычно хватает.
 name: Render keep-alive
 
 on:
   schedule:
-    # GitHub cron — UTC. Каждые 10 минут (чаще 15-минутного таймаута сна Render).
-    - cron: '*/10 * * * *'
+    # UTC. Каждые 10 минут; минуты 3/13/… — не в пик :00/:30, GitHub реже пропускает.
+    - cron: '3,13,23,33,43,53 * * * *'
   workflow_dispatch:
 
-concurrency:
-  group: render-keepalive
-  cancel-in-progress: false
+permissions:
+  contents: read
 
 jobs:
   ping:
