@@ -20,6 +20,9 @@ type VkAppState = {
 const DEV_VK_USER_ID = Number(import.meta.env.VITE_DEV_VK_USER_ID ?? '1')
 const BRIDGE_TIMEOUT_MS = 15_000
 
+const BROWSER_HINT =
+  'Это мини-приложение ВКонтакте — откройте его через сообщество студии или кнопку «Открыть» в настройках приложения на dev.vk.com. Для теста в браузере добавьте ?vk_user_id=ваш_id к URL.'
+
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return Promise.race([
     promise,
@@ -32,6 +35,9 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 function isVkIframe(): boolean {
   try {
     if (typeof bridge.isIframe === 'function' && bridge.isIframe()) {
+      return true
+    }
+    if (typeof bridge.isWebView === 'function' && bridge.isWebView()) {
       return true
     }
   } catch {
@@ -58,6 +64,10 @@ function userFromQuery(): VkUser | null {
   return { id, first_name: 'Гость' }
 }
 
+function resolveLaunchUser(): VkUser | null {
+  return userFromLaunchParams() ?? userFromQuery()
+}
+
 function testVkUser(): VkUser {
   return { id: DEV_VK_USER_ID, first_name: 'Тест' }
 }
@@ -66,39 +76,30 @@ function shouldSkipBridge(): boolean {
   if (import.meta.env.VITE_SKIP_VK_BRIDGE !== 'true') {
     return false
   }
-  return !isVkIframe() && !userFromLaunchParams()
+  return !isVkIframe() && !resolveLaunchUser()
+}
+
+function buildInitialState(): VkAppState {
+  if (shouldSkipBridge()) {
+    return { ready: true, vkUser: testVkUser(), error: null }
+  }
+
+  const launchUser = resolveLaunchUser()
+  if (launchUser && isVkIframe()) {
+    return { ready: true, vkUser: launchUser, error: null }
+  }
+
+  return { ready: false, vkUser: null, error: null }
 }
 
 export function useVkApp(): VkAppState {
-  const [state, setState] = useState<VkAppState>({
-    ready: false,
-    vkUser: null,
-    error: null,
-  })
+  const [state, setState] = useState<VkAppState>(buildInitialState)
 
   useEffect(() => {
     let cancelled = false
 
-    async function init() {
-      if (shouldSkipBridge()) {
-        if (!cancelled) {
-          setState({ ready: true, vkUser: testVkUser(), error: null })
-        }
-        return
-      }
-
-      const launchUser = userFromLaunchParams() ?? userFromQuery()
-
+    async function enrichUserName() {
       try {
-        await withTimeout(sendVkInit(), BRIDGE_TIMEOUT_MS)
-
-        if (launchUser) {
-          if (!cancelled) {
-            setState({ ready: true, vkUser: launchUser, error: null })
-          }
-          return
-        }
-
         const userInfo = await withTimeout<UserInfo>(
           bridge.send('VKWebAppGetUserInfo'),
           BRIDGE_TIMEOUT_MS,
@@ -115,18 +116,53 @@ export function useVkApp(): VkAppState {
           })
         }
       } catch {
+        // оставляем пользователя из launch params
+      }
+    }
+
+    async function init() {
+      if (shouldSkipBridge()) {
+        return
+      }
+
+      const launchUser = resolveLaunchUser()
+      const inVk = isVkIframe()
+
+      if (launchUser && inVk) {
+        void enrichUserName()
+        return
+      }
+
+      try {
+        await withTimeout(sendVkInit(), BRIDGE_TIMEOUT_MS)
+
+        if (launchUser) {
+          if (!cancelled) {
+            setState({ ready: true, vkUser: launchUser, error: null })
+          }
+          return
+        }
+
+        await enrichUserName()
+      } catch {
         if (cancelled) return
 
-        const fallback =
-          launchUser ??
-          (import.meta.env.DEV || shouldSkipBridge() ? testVkUser() : null)
+        if (launchUser) {
+          setState({ ready: true, vkUser: launchUser, error: null })
+          return
+        }
+
+        if (import.meta.env.DEV) {
+          setState({ ready: true, vkUser: testVkUser(), error: null })
+          return
+        }
 
         setState({
           ready: true,
-          vkUser: fallback,
-          error: fallback
-            ? null
-            : 'Не удалось подключиться к ВКонтакте. Закройте и откройте мини-приложение снова.',
+          vkUser: null,
+          error: inVk
+            ? 'Не удалось подключиться к ВКонтакте. Закройте и откройте мини-приложение снова.'
+            : BROWSER_HINT,
         })
       }
     }

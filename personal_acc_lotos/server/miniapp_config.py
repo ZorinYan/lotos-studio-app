@@ -2,19 +2,16 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
-from dotenv import dotenv_values
+from dotenv import load_dotenv
 
 _SERVER_DIR = Path(__file__).resolve().parent
 
 
 def _load_env_files() -> None:
-    # Сначала общий .env (токены из бота), затем server/.env только для недостающих ключей.
+    # .env важнее переменных терминала — иначе старые YCLIENTS_* из shell перекрывают файл.
     for env_file in (_SERVER_DIR.parent / ".env", _SERVER_DIR / ".env"):
-        if not env_file.exists():
-            continue
-        for key, value in dotenv_values(env_file).items():
-            if value and str(value).strip() and key not in os.environ:
-                os.environ[key] = str(value).strip()
+        if env_file.exists():
+            load_dotenv(env_file, override=True)
 
 
 _load_env_files()
