@@ -12,10 +12,13 @@ export type PublicConfig = {
   bookingUrl: string
 }
 
+export type AuthStep = 'otp' | 'name'
+
 export type PhoneCheckResponse = {
-  step: 'name'
+  step: AuthStep
   phone: string
   requiresSurname: boolean
+  otpSent: boolean
 }
 
 export type VerifyResponse = {
@@ -32,8 +35,26 @@ export function fetchAuthStatus(vkUserId: number) {
   return apiFetch<AuthStatus>(`/api/auth/status?vk_user_id=${vkUserId}`)
 }
 
-export function submitPhone(vkUserId: number, phone: string) {
+export function submitPhone(vkUserId: number, phone: string, messagesAllowed: boolean) {
   return apiFetch<PhoneCheckResponse>('/api/auth/phone', {
+    method: 'POST',
+    body: JSON.stringify({
+      vk_user_id: vkUserId,
+      phone,
+      messages_allowed: messagesAllowed,
+    }),
+  })
+}
+
+export function verifyOtp(vkUserId: number, phone: string, code: string) {
+  return apiFetch<VerifyResponse>('/api/auth/otp/verify', {
+    method: 'POST',
+    body: JSON.stringify({ vk_user_id: vkUserId, phone, code }),
+  })
+}
+
+export function resendOtp(vkUserId: number, phone: string) {
+  return apiFetch<PhoneCheckResponse>('/api/auth/otp/resend', {
     method: 'POST',
     body: JSON.stringify({ vk_user_id: vkUserId, phone }),
   })

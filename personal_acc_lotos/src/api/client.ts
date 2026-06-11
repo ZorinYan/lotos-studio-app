@@ -1,3 +1,5 @@
+import { vkLaunchHeaders } from '../vkLaunch'
+
 const API_BASE = import.meta.env.VITE_API_BASE ?? ''
 const API_TIMEOUT_MS = 25_000
 
@@ -62,6 +64,7 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
       signal: controller.signal,
       headers: {
         'Content-Type': 'application/json',
+        ...vkLaunchHeaders(),
         ...(init?.headers ?? {}),
       },
     })

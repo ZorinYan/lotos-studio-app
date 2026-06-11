@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 from datetime import date
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -10,8 +10,11 @@ from auth_service import (
     check_phone,
     get_auth_status,
     logout,
+    resend_otp,
     verify_name,
+    verify_otp,
 )
+from vk_auth import guard_vk_user, vk_launch_from_header
 from booking_api import book_schedule_class, check_booking_eligibility, check_guest_booking
 from cabinet_api import load_cabinet
 from home_api import load_home
@@ -58,6 +61,16 @@ class VkUserRequest(BaseModel):
 
 class PhoneRequest(VkUserRequest):
     phone: str = Field(min_length=5, max_length=30)
+    messages_allowed: bool = False
+
+
+class OtpVerifyRequest(VkUserRequest):
+    phone: str = Field(min_length=11, max_length=11)
+    code: str = Field(min_length=6, max_length=6)
+
+
+class OtpResendRequest(VkUserRequest):
+    phone: str = Field(min_length=11, max_length=11)
 
 
 class VerifyRequest(VkUserRequest):
@@ -94,6 +107,10 @@ def _handle_auth_error(error: AuthError) -> HTTPException:
     )
 
 
+def _guard(vk_user_id: int, launch: dict[str, str]) -> None:
+    guard_vk_user(vk_user_id, launch, _cfg())
+
+
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
@@ -109,9 +126,10 @@ def public_config() -> dict[str, str]:
 
 
 @app.get("/api/auth/status")
-def auth_status(vk_user_id: int):
+def auth_status(vk_user_id: int, launch: dict[str, str] = Depends(vk_launch_from_header)):
     if vk_user_id <= 0:
         raise HTTPException(status_code=400, detail="Некорректный vk_user_id")
+    _guard(vk_user_id, launch)
     status = get_auth_status(vk_user_id, _cfg())
     return {
         "authenticated": status.authenticated,
@@ -122,9 +140,15 @@ def auth_status(vk_user_id: int):
 
 
 @app.post("/api/auth/phone")
-def auth_phone(body: PhoneRequest):
+def auth_phone(body: PhoneRequest, launch: dict[str, str] = Depends(vk_launch_from_header)):
+    _guard(body.vk_user_id, launch)
     try:
-        result = check_phone(body.vk_user_id, body.phone, _cfg())
+        result = check_phone(
+            body.vk_user_id,
+            body.phone,
+            _cfg(),
+            messages_allowed=body.messages_allowed,
+        )
     except AuthError as error:
         raise _handle_auth_error(error) from error
 
@@ -132,11 +156,44 @@ def auth_phone(body: PhoneRequest):
         "step": result.step,
         "phone": result.phone,
         "requiresSurname": result.requires_surname,
+        "otpSent": result.otp_sent,
+    }
+
+
+@app.post("/api/auth/otp/verify")
+def auth_otp_verify(body: OtpVerifyRequest, launch: dict[str, str] = Depends(vk_launch_from_header)):
+    _guard(body.vk_user_id, launch)
+    try:
+        result = verify_otp(body.vk_user_id, body.phone, body.code, _cfg())
+    except AuthError as error:
+        raise _handle_auth_error(error) from error
+
+    return {
+        "success": True,
+        "phone": result.phone,
+        "phoneDisplay": result.phone_display,
+    }
+
+
+@app.post("/api/auth/otp/resend")
+def auth_otp_resend(body: OtpResendRequest, launch: dict[str, str] = Depends(vk_launch_from_header)):
+    _guard(body.vk_user_id, launch)
+    try:
+        result = resend_otp(body.vk_user_id, body.phone, _cfg())
+    except AuthError as error:
+        raise _handle_auth_error(error) from error
+
+    return {
+        "step": result.step,
+        "phone": result.phone,
+        "requiresSurname": result.requires_surname,
+        "otpSent": result.otp_sent,
     }
 
 
 @app.post("/api/auth/verify")
-def auth_verify(body: VerifyRequest):
+def auth_verify(body: VerifyRequest, launch: dict[str, str] = Depends(vk_launch_from_header)):
+    _guard(body.vk_user_id, launch)
     try:
         result = verify_name(body.vk_user_id, body.phone, body.name, _cfg())
     except AuthError as error:
@@ -150,7 +207,8 @@ def auth_verify(body: VerifyRequest):
 
 
 @app.post("/api/auth/logout")
-def auth_logout(body: VkUserRequest):
+def auth_logout(body: VkUserRequest, launch: dict[str, str] = Depends(vk_launch_from_header)):
+    _guard(body.vk_user_id, launch)
     logout(body.vk_user_id)
     return {"success": True}
 
@@ -170,9 +228,10 @@ def schedule_filters(refresh: bool = False):
 
 
 @app.get("/api/schedule/rebook")
-def schedule_rebook(vk_user_id: int):
+def schedule_rebook(vk_user_id: int, launch: dict[str, str] = Depends(vk_launch_from_header)):
     if vk_user_id <= 0:
         raise HTTPException(status_code=400, detail="Некорректный vk_user_id")
+    _guard(vk_user_id, launch)
     try:
         return load_rebook_slots(vk_user_id, _cfg())
     except AuthError as error:
@@ -207,9 +266,15 @@ def schedule(day: str | None = None, refresh: bool = False):
 
 
 @app.get("/api/records")
-def records(vk_user_id: int, filter: str = "all", refresh: bool = False):
+def records(
+    vk_user_id: int,
+    filter: str = "all",
+    refresh: bool = False,
+    launch: dict[str, str] = Depends(vk_launch_from_header),
+):
     if vk_user_id <= 0:
         raise HTTPException(status_code=400, detail="Некорректный vk_user_id")
+    _guard(vk_user_id, launch)
     try:
         return load_records(vk_user_id, filter, _cfg(), force_refresh=refresh)
     except AuthError as error:
@@ -223,7 +288,8 @@ def records(vk_user_id: int, filter: str = "all", refresh: bool = False):
 
 
 @app.post("/api/records/cancel")
-def records_cancel(body: CancelRecordRequest):
+def records_cancel(body: CancelRecordRequest, launch: dict[str, str] = Depends(vk_launch_from_header)):
+    _guard(body.vk_user_id, launch)
     try:
         return cancel_record(body.vk_user_id, body.record_id, _cfg())
     except AuthError as error:
@@ -253,11 +319,17 @@ def schedule_guest_check(body: GuestCheckRequest):
 
 
 @app.get("/api/schedule/book/eligibility")
-def schedule_book_eligibility(vk_user_id: int, activity_id: int, activity_date: str | None = None):
+def schedule_book_eligibility(
+    vk_user_id: int,
+    activity_id: int,
+    activity_date: str | None = None,
+    launch: dict[str, str] = Depends(vk_launch_from_header),
+):
     if vk_user_id <= 0:
         raise HTTPException(status_code=400, detail="Некорректный vk_user_id")
     if activity_id <= 0:
         raise HTTPException(status_code=400, detail="Некорректный activity_id")
+    _guard(vk_user_id, launch)
     try:
         return check_booking_eligibility(vk_user_id, activity_id, activity_date, _cfg())
     except AuthError as error:
@@ -273,7 +345,8 @@ def schedule_book_eligibility(vk_user_id: int, activity_id: int, activity_date: 
 
 
 @app.post("/api/schedule/book")
-def schedule_book(body: BookScheduleRequest):
+def schedule_book(body: BookScheduleRequest, launch: dict[str, str] = Depends(vk_launch_from_header)):
+    _guard(body.vk_user_id, launch)
     try:
         return book_schedule_class(
             body.vk_user_id,
@@ -296,9 +369,10 @@ def schedule_book(body: BookScheduleRequest):
 
 
 @app.get("/api/home")
-def home(vk_user_id: int, refresh: bool = False):
+def home(vk_user_id: int, refresh: bool = False, launch: dict[str, str] = Depends(vk_launch_from_header)):
     if vk_user_id <= 0:
         raise HTTPException(status_code=400, detail="Некорректный vk_user_id")
+    _guard(vk_user_id, launch)
     try:
         return load_home(vk_user_id, _cfg(), force_refresh=refresh)
     except AuthError as error:
@@ -312,9 +386,10 @@ def home(vk_user_id: int, refresh: bool = False):
 
 
 @app.get("/api/cabinet")
-def cabinet(vk_user_id: int, refresh: bool = False):
+def cabinet(vk_user_id: int, refresh: bool = False, launch: dict[str, str] = Depends(vk_launch_from_header)):
     if vk_user_id <= 0:
         raise HTTPException(status_code=400, detail="Некорректный vk_user_id")
+    _guard(vk_user_id, launch)
     try:
         return load_cabinet(vk_user_id, _cfg(), force_refresh=refresh)
     except AuthError as error:

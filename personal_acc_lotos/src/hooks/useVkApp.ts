@@ -98,10 +98,35 @@ export function useVkApp(): VkAppState {
   useEffect(() => {
     let cancelled = false
 
-    async function enrichUserName() {
-      if (!isVkIframe()) {
+    function applyFallbackUser() {
+      if (cancelled) return
+
+      const launchUser = resolveLaunchUser()
+      if (launchUser) {
+        setState({ ready: true, vkUser: launchUser, error: null })
         return
       }
+
+      if (import.meta.env.DEV) {
+        setState({ ready: true, vkUser: testVkUser(), error: null })
+        return
+      }
+
+      setState({
+        ready: true,
+        vkUser: null,
+        error: isVkIframe()
+          ? 'Не удалось получить данные пользователя VK.'
+          : BROWSER_HINT,
+      })
+    }
+
+    async function enrichUserName() {
+      if (!isVkIframe()) {
+        applyFallbackUser()
+        return
+      }
+
       try {
         const userInfo = await withTimeout<UserInfo>(
           bridge.send('VKWebAppGetUserInfo') as Promise<UserInfo>,
@@ -119,7 +144,7 @@ export function useVkApp(): VkAppState {
           })
         }
       } catch {
-        // оставляем пользователя из launch params / query
+        applyFallbackUser()
       }
     }
 
@@ -145,24 +170,7 @@ export function useVkApp(): VkAppState {
         await enrichUserName()
       } catch {
         if (cancelled) return
-
-        if (launchUser) {
-          setState({ ready: true, vkUser: launchUser, error: null })
-          return
-        }
-
-        if (import.meta.env.DEV) {
-          setState({ ready: true, vkUser: testVkUser(), error: null })
-          return
-        }
-
-        setState({
-          ready: true,
-          vkUser: null,
-          error: inVk
-            ? 'Не удалось подключиться к ВКонтакте. Закройте и откройте мини-приложение снова.'
-            : BROWSER_HINT,
-        })
+        applyFallbackUser()
       }
     }
 

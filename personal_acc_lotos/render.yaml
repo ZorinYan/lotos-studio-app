@@ -36,3 +36,7 @@ services:
         sync: false
       - key: CORS_ORIGINS
         sync: false
+      - key: VK_APP_SECRET
+        sync: false
+      - key: VK_GROUP_TOKEN
+        sync: false

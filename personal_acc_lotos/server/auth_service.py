@@ -4,6 +4,7 @@ from typing import Literal
 import requests
 
 from _lib_path import ensure_lib_path
+from auth_otp import send_login_code, verify_login_code
 from miniapp_config import MiniAppConfig
 from yclients_adapter import (
     YClientsError,
@@ -29,9 +30,10 @@ class AuthStatus:
 
 @dataclass(frozen=True)
 class PhoneCheckResult:
-    step: Literal["name"]
+    step: Literal["otp", "name"]
     phone: str
     requires_surname: bool
+    otp_sent: bool = False
 
 
 @dataclass(frozen=True)
@@ -72,9 +74,7 @@ def get_auth_status(vk_user_id: int, config: MiniAppConfig | None = None) -> Aut
     )
 
 
-def check_phone(vk_user_id: int, raw_phone: str, config: MiniAppConfig) -> PhoneCheckResult:
-    del vk_user_id  # reserved for rate limiting / audit later
-
+def _load_client_profile(raw_phone: str, config: MiniAppConfig) -> tuple[str, dict]:
     phone = normalize_phone(raw_phone)
     if not phone:
         raise AuthError("invalid_phone", "Не удалось распознать номер. Попробуйте, например: 89991234567")
@@ -102,11 +102,87 @@ def check_phone(vk_user_id: int, raw_phone: str, config: MiniAppConfig) -> Phone
             f"Если вы ещё не записывались — оформите первую запись онлайн: {config.yclients_booking_url}",
         )
 
+    return phone, profile
+
+
+def check_phone(
+    vk_user_id: int,
+    raw_phone: str,
+    config: MiniAppConfig,
+    *,
+    messages_allowed: bool = False,
+) -> PhoneCheckResult:
+    phone, profile = _load_client_profile(raw_phone, config)
+    requires_surname = client_has_surname(profile)
+
+    if messages_allowed:
+        sent, _error = send_login_code(vk_user_id, phone, config)
+        if sent:
+            return PhoneCheckResult(
+                step="otp",
+                phone=phone,
+                requires_surname=requires_surname,
+                otp_sent=True,
+            )
+
     return PhoneCheckResult(
         step="name",
         phone=phone,
-        requires_surname=client_has_surname(profile),
+        requires_surname=requires_surname,
+        otp_sent=False,
     )
+
+
+def resend_otp(vk_user_id: int, raw_phone: str, config: MiniAppConfig) -> PhoneCheckResult:
+    phone, profile = _load_client_profile(raw_phone, config)
+    sent, error = send_login_code(vk_user_id, phone, config)
+    if not sent:
+        raise AuthError(
+            "otp_send_failed",
+            error or "Не удалось отправить код. Войдите по имени и фамилии.",
+        )
+    return PhoneCheckResult(
+        step="otp",
+        phone=phone,
+        requires_surname=client_has_surname(profile),
+        otp_sent=True,
+    )
+
+
+def _complete_login(vk_user_id: int, phone: str, config: MiniAppConfig) -> VerifyResult:
+    yclients = create_yclients_client(config)
+    try:
+        profile = yclients.find_client_by_phone(phone)
+    except (YClientsPermissionError, YClientsError, requests.RequestException):
+        profile = None
+
+    client_name = _client_name(profile) if profile else None
+    storage.update_user_entry(
+        vk_user_id,
+        phone=phone,
+        client_name=client_name,
+    )
+    return VerifyResult(
+        phone=phone,
+        phone_display=format_phone_display(phone),
+    )
+
+
+def verify_otp(
+    vk_user_id: int,
+    phone: str,
+    raw_code: str,
+    config: MiniAppConfig,
+) -> VerifyResult:
+    normalized_phone = normalize_phone(phone)
+    if not normalized_phone:
+        raise AuthError("invalid_phone", "Некорректный номер телефона.")
+
+    ok, message = verify_login_code(vk_user_id, normalized_phone, raw_code)
+    if not ok:
+        raise AuthError("otp_verification_failed", message or "Неверный код.")
+
+    return _complete_login(vk_user_id, normalized_phone, config)
 
 
 def verify_name(
@@ -149,15 +225,7 @@ def verify_name(
             f"Проверьте номер и попробуйте снова или запишитесь онлайн: {config.yclients_booking_url}",
         )
 
-    storage.update_user_entry(
-        vk_user_id,
-        phone=normalized_phone,
-        client_name=_client_name(profile),
-    )
-    return VerifyResult(
-        phone=normalized_phone,
-        phone_display=format_phone_display(normalized_phone),
-    )
+    return _complete_login(vk_user_id, normalized_phone, config)
 
 
 def logout(vk_user_id: int) -> None:

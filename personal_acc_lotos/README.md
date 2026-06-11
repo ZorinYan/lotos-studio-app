@@ -34,3 +34,9 @@ npm run dev
 - API: Render (`render.yaml`)
 
 На Free Render API не засыпает за счёт: встроенного keep-alive (`keepalive.py`), GitHub Actions (`.github/workflows/render-keepalive.yml`) и взаимного ping с VK-ботом (`KEEPALIVE_EXTRA_URLS` в `render.yaml`).
+
+## Авторизация
+
+Многоуровневый вход: телефон → код в ЛС VK (если разрешены уведомления) → имя/фамилия как запасной вариант. Все запросы с `vk_user_id` проверяют подпись launch params (`VK_APP_SECRET`).
+
+На Render задайте `VK_APP_SECRET` (защищённый ключ мини-приложения) и `VK_GROUP_TOKEN` (тот же, что у бота). Локально: `SKIP_VK_SIGN=true` в `server/.env`.
