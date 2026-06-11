@@ -11,7 +11,6 @@ export type VkUser = {
   last_name?: string
 }
 
-
 type VkAppState = {
   ready: boolean
   vkUser: VkUser | null
@@ -86,7 +85,7 @@ function buildInitialState(): VkAppState {
   }
 
   const launchUser = resolveLaunchUser()
-  if (launchUser && isVkIframe()) {
+  if (launchUser) {
     return { ready: true, vkUser: launchUser, error: null }
   }
 
@@ -100,9 +99,12 @@ export function useVkApp(): VkAppState {
     let cancelled = false
 
     async function enrichUserName() {
+      if (!isVkIframe()) {
+        return
+      }
       try {
         const userInfo = await withTimeout<UserInfo>(
-          bridge.send('VKWebAppGetUserInfo'),
+          bridge.send('VKWebAppGetUserInfo') as Promise<UserInfo>,
           BRIDGE_TIMEOUT_MS,
         )
         if (!cancelled) {
@@ -117,7 +119,7 @@ export function useVkApp(): VkAppState {
           })
         }
       } catch {
-        // оставляем пользователя из launch params
+        // оставляем пользователя из launch params / query
       }
     }
 
@@ -129,6 +131,10 @@ export function useVkApp(): VkAppState {
       const launchUser = resolveLaunchUser()
       const inVk = isVkIframe()
 
+      if (launchUser && !inVk) {
+        return
+      }
+
       if (launchUser && inVk) {
         void enrichUserName()
         return
@@ -136,14 +142,6 @@ export function useVkApp(): VkAppState {
 
       try {
         await withTimeout(sendVkInit(), BRIDGE_TIMEOUT_MS)
-
-        if (launchUser) {
-          if (!cancelled) {
-            setState({ ready: true, vkUser: launchUser, error: null })
-          }
-          return
-        }
-
         await enrichUserName()
       } catch {
         if (cancelled) return

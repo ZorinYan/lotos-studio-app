@@ -11,6 +11,23 @@
       rel="stylesheet"
     />
     <title>Lotos Studio</title>
+    <script>
+      // Ранняя инициализация до загрузки React (требование VK).
+      if (window.parent !== window) {
+        try {
+          parent.postMessage(
+            {
+              type: 'vk-connect',
+              handler: 'VKWebAppInit',
+              params: {},
+              connectVersion: '2.15.12',
+              webFrameId: Math.random().toString(36).slice(2, 5),
+            },
+            '*',
+          )
+        } catch (e) {}
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
