@@ -11,6 +11,7 @@ export type VkUser = {
   last_name?: string
 }
 
+
 type VkAppState = {
   ready: boolean
   vkUser: VkUser | null

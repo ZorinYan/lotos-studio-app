@@ -8,3 +8,6 @@ export function sendVkInit(): Promise<{ result: true }> {
   initPromise ??= bridge.send('VKWebAppInit')
   return initPromise
 }
+
+// Как можно раньше при загрузке бандла (требование VK).
+sendVkInit()
