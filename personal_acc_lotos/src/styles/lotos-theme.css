@@ -12,10 +12,13 @@
   --vkui--color_background_accent: var(--lotos-plum);
   --vkui--color_text_accent: var(--lotos-plum);
   --vkui--color_field_background: var(--lotos-blush);
-  --vkui--color_field_background--hover: #ebe0d6;
-  --vkui--color_field_background--active: #e2d5c9;
+  --vkui--color_field_background--hover: var(--lotos-field-hover);
+  --vkui--color_field_background--active: var(--lotos-field-active);
   --vkui--color_field_border_alpha: var(--lotos-border-strong);
-  --vkui--color_field_border_alpha--hover: rgba(74, 44, 61, 0.22);
+  --vkui--color_field_border_alpha--hover: var(--lotos-field-border-hover);
+  background: var(--lotos-bg);
+  color: var(--lotos-text);
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 body {
@@ -25,6 +28,7 @@ body {
   font-weight: 500;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 /* Shared primitives */
@@ -50,6 +54,7 @@ body {
   border: 1px solid var(--lotos-border);
   border-radius: var(--lotos-radius-md);
   box-shadow: var(--lotos-shadow-sm);
+  transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .lotos-btn {
@@ -75,7 +80,7 @@ body {
 
 .lotos-btn--primary {
   background: linear-gradient(135deg, var(--lotos-plum) 0%, var(--lotos-plum-soft) 100%);
-  color: var(--lotos-text-on-plum);
+  color: var(--lotos-text-on-primary);
   box-shadow: var(--lotos-shadow-plum);
 }
 
@@ -91,9 +96,9 @@ body {
 }
 
 .lotos-btn--danger {
-  background: linear-gradient(135deg, #8b3d52 0%, #a64d63 100%);
+  background: var(--lotos-btn-danger-gradient);
   color: #fff;
-  box-shadow: 0 8px 24px rgba(139, 61, 82, 0.28);
+  box-shadow: var(--lotos-btn-danger-shadow);
 }
 
 .lotos-btn--stretched {

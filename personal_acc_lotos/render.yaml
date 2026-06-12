@@ -40,3 +40,17 @@ services:
         sync: false
       - key: VK_GROUP_TOKEN
         sync: false
+      - key: VK_GROUP_ID
+        value: "234626072"
+      - key: VK_SERVICE_TOKEN
+        sync: false
+      - key: STUDIO_ADDRESS
+        sync: false
+      - key: STUDIO_HOURS
+        sync: false
+      - key: STUDIO_PHONE
+        sync: false
+      - key: STUDIO_LATITUDE
+        sync: false
+      - key: STUDIO_LONGITUDE
+        sync: false

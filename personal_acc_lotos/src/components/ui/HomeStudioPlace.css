@@ -1,0 +1,89 @@
+.home-studio-place {
+  margin-top: 24px;
+}
+
+.home-studio-place__title {
+  margin-bottom: 12px;
+}
+
+.home-studio-place__card {
+  overflow: hidden;
+  padding: 0;
+}
+
+.home-studio-place__map-wrap {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  background: var(--lotos-blush);
+}
+
+.home-studio-place__map {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.home-studio-place__info {
+  padding: 16px;
+}
+
+.home-studio-place__heading {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+
+.home-studio-place__icon {
+  flex-shrink: 0;
+  color: var(--lotos-plum);
+}
+
+.home-studio-place__address {
+  margin: 0;
+  flex: 1;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--lotos-text);
+}
+
+.home-studio-place__row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.home-studio-place__label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--lotos-text-muted);
+}
+
+.home-studio-place__value,
+.home-studio-place__link {
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--lotos-text);
+}
+
+.home-studio-place__link {
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.home-studio-place__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.home-studio-place__btn {
+  flex: 1 1 140px;
+}

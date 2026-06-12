@@ -40,7 +40,7 @@
   margin: 12px 0 0;
   padding: 10px 12px;
   border-radius: var(--lotos-radius-sm);
-  background: rgba(90, 125, 98, 0.1);
+  background: var(--lotos-success-bg);
   color: var(--lotos-success);
   font-size: var(--lotos-caption);
   line-height: 1.45;

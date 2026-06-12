@@ -35,5 +35,5 @@
 }
 
 .stat-tile--accent .stat-tile__label {
-  color: rgba(250, 247, 243, 0.75);
+  color: var(--lotos-text-on-plum-muted);
 }

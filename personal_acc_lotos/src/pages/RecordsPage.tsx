@@ -11,7 +11,7 @@ import './RecordsPage.css'
 type RecordsPageProps = {
   vkUserId: number
   studioName: string
-  onBack: () => void
+  onBack?: () => void
 }
 
 const FILTERS: { id: RecordFilter; label: string }[] = [
@@ -117,7 +117,7 @@ export function RecordsPage({ vkUserId, studioName, onBack }: RecordsPageProps) 
         {!loading && (
           <button
             type="button"
-            className="lotos-btn lotos-btn--secondary lotos-btn--stretched"
+            className="lotos-btn lotos-btn--secondary lotos-btn--stretched records-page__refresh"
             disabled={refreshing}
             onClick={() => void load(filter, true)}
           >

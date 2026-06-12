@@ -11,7 +11,7 @@
   position: absolute;
   inset: 0;
   border: none;
-  background: rgba(42, 31, 36, 0.45);
+  background: var(--lotos-overlay);
   backdrop-filter: blur(4px);
   cursor: pointer;
 }
@@ -92,12 +92,12 @@
 }
 
 .schedule-modal__status--free {
-  background: rgba(90, 125, 98, 0.12);
+  background: var(--lotos-success-bg);
   color: var(--lotos-success);
 }
 
 .schedule-modal__status--full {
-  background: rgba(196, 77, 77, 0.14);
+  background: var(--lotos-danger-bg);
   color: var(--lotos-danger);
 }
 
@@ -122,7 +122,7 @@
   margin: 0 0 var(--lotos-space-md);
   padding: 12px 14px;
   border-radius: var(--lotos-radius-sm);
-  background: rgba(90, 125, 98, 0.1);
+  background: var(--lotos-success-bg);
   color: var(--lotos-success);
   font-size: var(--lotos-caption);
   line-height: 1.45;
@@ -225,7 +225,7 @@
   height: 56px;
   margin: 0 auto var(--lotos-space-md);
   border-radius: 50%;
-  background: rgba(90, 125, 98, 0.14);
+  background: var(--lotos-success-bg);
   color: var(--lotos-success);
   font-size: 28px;
   line-height: 56px;

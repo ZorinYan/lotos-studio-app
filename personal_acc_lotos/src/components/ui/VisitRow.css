@@ -40,7 +40,7 @@
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: rgba(90, 125, 98, 0.12);
+  background: var(--lotos-success-bg);
   color: var(--lotos-success);
   font-size: 11px;
   font-weight: 700;

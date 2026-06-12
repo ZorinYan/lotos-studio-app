@@ -11,7 +11,7 @@
   position: absolute;
   inset: 0;
   border: none;
-  background: rgba(42, 31, 36, 0.45);
+  background: var(--lotos-overlay);
   backdrop-filter: blur(4px);
   cursor: pointer;
 }

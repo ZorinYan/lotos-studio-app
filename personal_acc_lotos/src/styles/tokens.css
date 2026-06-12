@@ -1,11 +1,13 @@
 /**
  * Lotos Studio — design tokens
- * Используйте эти переменные во всех новых экранах и компонентах.
+ * Тема: data-lotos-theme на <html> (light | dark)
  */
-:root {
+:root,
+[data-lotos-theme='light'] {
   /* Brand */
   --lotos-plum: #4a2c3d;
   --lotos-plum-soft: #6b4558;
+  --lotos-plum-deep: #3d2433;
   --lotos-rose: #c4a882;
   --lotos-rose-light: #e8d9c4;
   --lotos-blush: #f3ebe3;
@@ -18,18 +20,57 @@
   --lotos-surface-elevated: #fffdfb;
   --lotos-border: rgba(74, 44, 61, 0.08);
   --lotos-border-strong: rgba(74, 44, 61, 0.14);
+  --lotos-overlay: rgba(42, 31, 36, 0.45);
+  --lotos-header-glass: rgba(250, 247, 243, 0.92);
+  --lotos-nav-glass: rgba(255, 251, 247, 0.96);
 
   /* Text */
   --lotos-text: #2a1f24;
   --lotos-text-secondary: #6e5d64;
   --lotos-text-muted: #9a8b91;
   --lotos-text-on-plum: #faf7f3;
+  --lotos-text-on-plum-muted: rgba(250, 247, 243, 0.75);
+  --lotos-text-on-primary: #faf7f3;
 
   /* Semantic */
   --lotos-success: #5a7d62;
   --lotos-danger: #c44d4d;
   --lotos-warning: #b8893a;
   --lotos-info: #6b7f9a;
+  --lotos-success-bg: rgba(90, 125, 98, 0.12);
+  --lotos-danger-bg: rgba(196, 77, 77, 0.14);
+  --lotos-warning-bg: rgba(184, 137, 58, 0.12);
+  --lotos-warning-text: #8a6424;
+  --lotos-info-bg: rgba(107, 127, 154, 0.12);
+  --lotos-plum-bg: rgba(74, 44, 61, 0.08);
+  --lotos-danger-soft-bg: rgba(139, 61, 82, 0.1);
+  --lotos-danger-soft-text: #6d3348;
+
+  /* Components */
+  --lotos-hero-orb: rgba(196, 168, 130, 0.22);
+  --lotos-cabinet-orb: rgba(196, 168, 130, 0.35);
+  --lotos-widget-gradient: linear-gradient(145deg, #fffdfb 0%, #f8f0e8 100%);
+  --lotos-cabinet-gradient: linear-gradient(
+    155deg,
+    var(--lotos-plum) 0%,
+    var(--lotos-plum-deep) 55%,
+    var(--lotos-plum-soft) 100%
+  );
+  --lotos-feature-schedule-gradient: linear-gradient(135deg, #5a4a3d 0%, var(--lotos-rose) 100%);
+  --lotos-feature-records-gradient: linear-gradient(135deg, #4a2c3d 0%, #7d5a6a 100%);
+  --lotos-feature-schedule-shadow: 0 8px 24px rgba(196, 168, 130, 0.35);
+  --lotos-feature-records-shadow: 0 8px 24px rgba(74, 44, 61, 0.28);
+  --lotos-chip-active-bg: rgba(74, 44, 61, 0.1);
+  --lotos-on-plum-badge-bg: rgba(255, 255, 255, 0.12);
+  --lotos-on-plum-badge-border: rgba(255, 255, 255, 0.2);
+  --lotos-logout-bg: rgba(220, 88, 88, 0.12);
+  --lotos-logout-border: rgba(196, 74, 74, 0.28);
+  --lotos-logout-text: #a53a3a;
+  --lotos-btn-danger-gradient: linear-gradient(135deg, #8b3d52 0%, #a64d63 100%);
+  --lotos-btn-danger-shadow: 0 8px 24px rgba(139, 61, 82, 0.28);
+  --lotos-field-hover: #ebe0d6;
+  --lotos-field-active: #e2d5c9;
+  --lotos-field-border-hover: rgba(74, 44, 61, 0.22);
 
   /* Radius & shadow */
   --lotos-radius-sm: 12px;
@@ -47,7 +88,7 @@
   --lotos-space-lg: 24px;
   --lotos-space-xl: 32px;
 
-  /* Typography — Cormorant Garamond (заголовки) + Manrope (текст) */
+  /* Typography */
   --lotos-font-display: 'Cormorant Garamond', 'Georgia', 'Times New Roman', serif;
   --lotos-font-body: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --lotos-label: 11px;
@@ -55,4 +96,72 @@
   --lotos-body: 15px;
   --lotos-title: 22px;
   --lotos-display: 32px;
+}
+
+[data-lotos-theme='dark'] {
+  --lotos-plum: #d4b896;
+  --lotos-plum-soft: #a8896c;
+  --lotos-plum-deep: #2a1822;
+  --lotos-rose: #c9ad86;
+  --lotos-rose-light: #8f7358;
+  --lotos-blush: #342a30;
+  --lotos-cream: #1a1216;
+
+  --lotos-bg: #1a1216;
+  --lotos-surface: #241a20;
+  --lotos-surface-elevated: #2c2128;
+  --lotos-border: rgba(255, 255, 255, 0.08);
+  --lotos-border-strong: rgba(255, 255, 255, 0.14);
+  --lotos-overlay: rgba(8, 4, 6, 0.72);
+  --lotos-header-glass: rgba(26, 18, 22, 0.92);
+  --lotos-nav-glass: rgba(26, 18, 22, 0.96);
+
+  --lotos-text: #f4ecef;
+  --lotos-text-secondary: #c4b4bc;
+  --lotos-text-muted: #8f7f87;
+  --lotos-text-on-plum: #f4ecef;
+  --lotos-text-on-plum-muted: rgba(244, 236, 239, 0.75);
+  --lotos-text-on-primary: #1a1216;
+
+  --lotos-success: #8fbf98;
+  --lotos-danger: #e07a7a;
+  --lotos-warning: #d4a85a;
+  --lotos-info: #8fa3be;
+  --lotos-success-bg: rgba(143, 191, 152, 0.16);
+  --lotos-danger-bg: rgba(224, 122, 122, 0.16);
+  --lotos-warning-bg: rgba(212, 168, 90, 0.16);
+  --lotos-warning-text: #d4a85a;
+  --lotos-info-bg: rgba(143, 163, 190, 0.16);
+  --lotos-plum-bg: rgba(212, 184, 150, 0.1);
+  --lotos-danger-soft-bg: rgba(224, 122, 122, 0.14);
+  --lotos-danger-soft-text: #f0a8a8;
+
+  --lotos-hero-orb: rgba(201, 173, 134, 0.18);
+  --lotos-cabinet-orb: rgba(201, 173, 134, 0.22);
+  --lotos-widget-gradient: linear-gradient(145deg, #2c2128 0%, #241a20 100%);
+  --lotos-cabinet-gradient: linear-gradient(
+    155deg,
+    #3d2834 0%,
+    #2a1822 55%,
+    #4a3540 100%
+  );
+  --lotos-feature-schedule-gradient: linear-gradient(135deg, #4a3d32 0%, #8f7358 100%);
+  --lotos-feature-records-gradient: linear-gradient(135deg, #3d2834 0%, #6b4f5d 100%);
+  --lotos-feature-schedule-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --lotos-feature-records-shadow: 0 8px 24px rgba(0, 0, 0, 0.32);
+  --lotos-chip-active-bg: rgba(212, 184, 150, 0.14);
+  --lotos-on-plum-badge-bg: rgba(26, 18, 22, 0.22);
+  --lotos-on-plum-badge-border: rgba(26, 18, 22, 0.32);
+  --lotos-logout-bg: rgba(224, 122, 122, 0.14);
+  --lotos-logout-border: rgba(224, 122, 122, 0.32);
+  --lotos-logout-text: #f0a8a8;
+  --lotos-btn-danger-gradient: linear-gradient(135deg, #9a4560 0%, #b85a72 100%);
+  --lotos-btn-danger-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --lotos-field-hover: #3a2e34;
+  --lotos-field-active: #44363d;
+  --lotos-field-border-hover: rgba(255, 255, 255, 0.2);
+
+  --lotos-shadow-sm: 0 2px 12px rgba(0, 0, 0, 0.28);
+  --lotos-shadow-md: 0 8px 32px rgba(0, 0, 0, 0.36);
+  --lotos-shadow-plum: 0 12px 40px rgba(0, 0, 0, 0.42);
 }

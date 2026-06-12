@@ -12,6 +12,15 @@
     />
     <title>Lotos Studio</title>
     <script>
+      try {
+        var lotosTheme = localStorage.getItem('lotos_color_scheme')
+        if (lotosTheme === 'dark') {
+          document.documentElement.setAttribute('data-lotos-theme', 'dark')
+          document.documentElement.style.colorScheme = 'dark'
+        }
+      } catch (e) {}
+    </script>
+    <script>
       // Ранняя инициализация до загрузки React (требование VK).
       if (window.parent !== window) {
         try {

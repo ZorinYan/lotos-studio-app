@@ -3,7 +3,7 @@
   margin-bottom: var(--lotos-space-md);
   cursor: pointer;
   transition: box-shadow 0.2s ease, transform 0.15s ease;
-  background: linear-gradient(145deg, #fffdfb 0%, #f8f0e8 100%);
+  background: var(--lotos-widget-gradient);
 }
 
 .home-abonement:active {
@@ -48,17 +48,17 @@
 }
 
 .home-abonement__status--active {
-  background: rgba(90, 125, 98, 0.12);
+  background: var(--lotos-success-bg);
   color: var(--lotos-success);
 }
 
 .home-abonement__status--frozen {
-  background: rgba(107, 127, 154, 0.12);
+  background: var(--lotos-info-bg);
   color: var(--lotos-info);
 }
 
 .home-abonement__status--expired {
-  background: rgba(74, 44, 61, 0.08);
+  background: var(--lotos-plum-bg);
   color: var(--lotos-text-muted);
 }
 

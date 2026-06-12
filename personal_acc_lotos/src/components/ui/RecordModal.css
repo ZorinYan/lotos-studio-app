@@ -11,7 +11,7 @@
   position: absolute;
   inset: 0;
   border: none;
-  background: rgba(42, 31, 36, 0.45);
+  background: var(--lotos-overlay);
   backdrop-filter: blur(4px);
   cursor: pointer;
 }
@@ -92,22 +92,22 @@
 }
 
 .record-modal__status--waiting {
-  background: rgba(184, 137, 58, 0.12);
+  background: var(--lotos-warning-bg);
   color: var(--lotos-warning);
 }
 
 .record-modal__status--confirmed {
-  background: rgba(107, 127, 154, 0.12);
+  background: var(--lotos-info-bg);
   color: var(--lotos-info);
 }
 
 .record-modal__status--done {
-  background: rgba(90, 125, 98, 0.12);
+  background: var(--lotos-success-bg);
   color: var(--lotos-success);
 }
 
 .record-modal__status--missed {
-  background: rgba(74, 44, 61, 0.08);
+  background: var(--lotos-plum-bg);
   color: var(--lotos-text-muted);
 }
 
@@ -198,7 +198,7 @@
   height: 56px;
   margin: 0 auto var(--lotos-space-md);
   border-radius: 50%;
-  background: rgba(90, 125, 98, 0.14);
+  background: var(--lotos-success-bg);
   color: var(--lotos-success);
   font-size: 28px;
   line-height: 56px;

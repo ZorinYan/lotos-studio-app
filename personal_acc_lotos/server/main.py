@@ -22,6 +22,8 @@ from records_api import cancel_record, load_records
 from rebook_api import load_rebook_slots
 from schedule_api import load_schedule
 from schedule_filters_api import load_schedule_filters
+from settings_api import load_settings, update_settings
+from vk_group_content import load_studio_feed
 from miniapp_config import MiniAppConfig, load_config
 from _lib_path import ensure_lib_path
 from keepalive import KeepAliveService, start_from_env
@@ -91,6 +93,13 @@ class GuestCheckRequest(BaseModel):
 
 class CancelRecordRequest(VkUserRequest):
     record_id: int = Field(gt=0)
+
+
+class SettingsUpdateRequest(VkUserRequest):
+    favorite_staff_id: int | None = None
+    favorite_staff_name: str | None = Field(default=None, max_length=120)
+    clear_favorite: bool = False
+    notifications_enabled: bool | None = None
 
 
 def _cfg() -> MiniAppConfig:
@@ -211,6 +220,28 @@ def auth_logout(body: VkUserRequest, launch: dict[str, str] = Depends(vk_launch_
     _guard(body.vk_user_id, launch)
     logout(body.vk_user_id)
     return {"success": True}
+
+
+@app.get("/api/settings")
+def settings_get(vk_user_id: int, launch: dict[str, str] = Depends(vk_launch_from_header)):
+    if vk_user_id <= 0:
+        raise HTTPException(status_code=400, detail="Некорректный vk_user_id")
+    _guard(vk_user_id, launch)
+    return load_settings(vk_user_id)
+
+
+@app.put("/api/settings")
+def settings_put(body: SettingsUpdateRequest, launch: dict[str, str] = Depends(vk_launch_from_header)):
+    _guard(body.vk_user_id, launch)
+    if body.clear_favorite and body.favorite_staff_id is not None:
+        raise HTTPException(status_code=400, detail="Нельзя одновременно сбросить и задать тренера")
+    return update_settings(
+        body.vk_user_id,
+        favorite_staff_id=body.favorite_staff_id,
+        favorite_staff_name=body.favorite_staff_name,
+        clear_favorite=body.clear_favorite,
+        notifications_enabled=body.notifications_enabled,
+    )
 
 
 @app.get("/api/schedule/filters")
@@ -366,6 +397,18 @@ def schedule_book(body: BookScheduleRequest, launch: dict[str, str] = Depends(vk
             status_code=status,
             detail={"code": error.code, "message": str(error)},
         ) from error
+
+
+@app.get("/api/studio/feed")
+def studio_feed(
+    vk_user_id: int,
+    refresh: bool = False,
+    launch: dict[str, str] = Depends(vk_launch_from_header),
+):
+    if vk_user_id <= 0:
+        raise HTTPException(status_code=400, detail="Некорректный vk_user_id")
+    _guard(vk_user_id, launch)
+    return load_studio_feed(_cfg(), force_refresh=refresh)
 
 
 @app.get("/api/home")

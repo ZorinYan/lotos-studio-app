@@ -1,0 +1,46 @@
+.bottom-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+  padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0px));
+  background: var(--lotos-nav-glass);
+  border-top: 1px solid var(--lotos-border);
+  backdrop-filter: blur(10px);
+}
+
+.bottom-nav__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 4px;
+  border: none;
+  background: transparent;
+  color: var(--lotos-text-muted);
+  cursor: pointer;
+}
+
+.bottom-nav__item--active {
+  color: var(--lotos-plum);
+}
+
+.bottom-nav__icon {
+  width: 24px;
+  height: 24px;
+}
+
+.bottom-nav__label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.app-tab-shell__content {
+  min-height: 100vh;
+  padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+}

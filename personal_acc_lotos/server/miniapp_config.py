@@ -17,6 +17,20 @@ def _load_env_files() -> None:
 _load_env_files()
 
 
+def _clean_token(value: str) -> str:
+    return value.strip().strip('"').strip("'")
+
+
+def _optional_float(value: str) -> float | None:
+    raw = (value or "").strip()
+    if not raw:
+        return None
+    try:
+        return float(raw)
+    except ValueError:
+        return None
+
+
 @dataclass(frozen=True)
 class MiniAppConfig:
     yclients_partner_token: str
@@ -27,6 +41,13 @@ class MiniAppConfig:
     cors_origins: tuple[str, ...]
     vk_app_secret: str
     vk_group_token: str
+    vk_service_token: str
+    vk_group_id: int
+    studio_address: str
+    studio_hours: str
+    studio_phone: str
+    studio_latitude: float | None
+    studio_longitude: float | None
     skip_vk_sign: bool
 
 
@@ -61,6 +82,13 @@ def load_config() -> MiniAppConfig:
         ),
         cors_origins=origins,
         vk_app_secret=vk_app_secret,
-        vk_group_token=os.getenv("VK_GROUP_TOKEN", ""),
+        vk_group_token=_clean_token(os.getenv("VK_GROUP_TOKEN", "")),
+        vk_service_token=_clean_token(os.getenv("VK_SERVICE_TOKEN", "")),
+        vk_group_id=int(os.getenv("VK_GROUP_ID", "0") or "0"),
+        studio_address=os.getenv("STUDIO_ADDRESS", ""),
+        studio_hours=os.getenv("STUDIO_HOURS", ""),
+        studio_phone=os.getenv("STUDIO_PHONE", ""),
+        studio_latitude=_optional_float(os.getenv("STUDIO_LATITUDE", "")),
+        studio_longitude=_optional_float(os.getenv("STUDIO_LONGITUDE", "")),
         skip_vk_sign=skip_vk_sign,
     )

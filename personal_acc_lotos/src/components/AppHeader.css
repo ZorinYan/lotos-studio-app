@@ -4,7 +4,7 @@
   justify-content: space-between;
   gap: 12px;
   padding: 14px var(--lotos-space-md);
-  background: rgba(250, 247, 243, 0.92);
+  background: var(--lotos-header-glass);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--lotos-border);
   position: sticky;

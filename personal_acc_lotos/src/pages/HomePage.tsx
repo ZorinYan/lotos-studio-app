@@ -2,14 +2,19 @@ import { ScreenSpinner, Snackbar } from '@vkontakte/vkui'
 import { useCallback, useEffect, useState } from 'react'
 import { fetchHome } from '../api/home'
 import { fetchRebookSlots } from '../api/schedule'
+import { fetchStudioFeed } from '../api/studio'
 import { ApiError } from '../api/client'
 import { AppHeader } from '../components/AppHeader'
 import { HomeAbonementWidget } from '../components/ui/HomeAbonementWidget'
 import { HomeAlertsBanner } from '../components/ui/HomeAlertsBanner'
 import { HomeNextRecordWidget } from '../components/ui/HomeNextRecordWidget'
+import { HomeStudioPlace } from '../components/ui/HomeStudioPlace'
+import { HomeVkPosts } from '../components/ui/HomeVkPosts'
+import { HomeVkStories } from '../components/ui/HomeVkStories'
 import { RebookModal } from '../components/ui/RebookModal'
 import type { HomeData } from '../types/home'
 import type { RebookData } from '../types/schedule'
+import type { StudioFeed } from '../types/studio'
 import './HomePage.css'
 
 type HomePageProps = {
@@ -18,9 +23,7 @@ type HomePageProps = {
   studioName: string
   phoneDisplay: string | null
   onOpenCabinet: () => void
-  onOpenSchedule: () => void
   onOpenRecords: () => void
-  onLogout: () => void
 }
 
 export function HomePage({
@@ -29,11 +32,10 @@ export function HomePage({
   studioName,
   phoneDisplay,
   onOpenCabinet,
-  onOpenSchedule,
   onOpenRecords,
-  onLogout,
 }: HomePageProps) {
   const [homeData, setHomeData] = useState<HomeData | null>(null)
+  const [studioFeed, setStudioFeed] = useState<StudioFeed | null>(null)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -45,18 +47,29 @@ export function HomePage({
     else setLoading(true)
     setError(null)
 
-    try {
-      const data = await fetchHome(vkUserId, isRefresh)
-      setHomeData(data)
-    } catch (err) {
+    const [homeResult, feedResult] = await Promise.allSettled([
+      fetchHome(vkUserId, isRefresh),
+      fetchStudioFeed(vkUserId, isRefresh),
+    ])
+
+    if (homeResult.status === 'fulfilled') {
+      setHomeData(homeResult.value)
+    } else {
       setHomeData(null)
       if (isRefresh) {
-        setError(err instanceof ApiError ? err.message : 'Не удалось обновить данные')
+        const reason = homeResult.reason
+        setError(reason instanceof ApiError ? reason.message : 'Не удалось обновить данные')
       }
-    } finally {
-      setLoading(false)
-      setRefreshing(false)
     }
+
+    if (feedResult.status === 'fulfilled') {
+      setStudioFeed(feedResult.value)
+    } else {
+      setStudioFeed(null)
+    }
+
+    setLoading(false)
+    setRefreshing(false)
   }, [vkUserId])
 
   useEffect(() => {
@@ -84,14 +97,13 @@ export function HomePage({
 
   return (
     <div className="home-page">
-      <AppHeader onCabinetClick={onOpenCabinet} />
+      <AppHeader showCabinetButton={false} />
 
       <main className="home-page__content">
         <section className="home-hero">
           <div className="home-hero__orb" aria-hidden="true" />
           <p className="home-hero__eyebrow">Lotos Studio</p>
           <h2 className="home-hero__greeting">{greeting}</h2>
-          <p className="home-hero__studio">{displayStudio}</p>
           {phoneDisplay && (
             <span className="home-hero__badge">{phoneDisplay}</span>
           )}
@@ -143,61 +155,22 @@ export function HomePage({
           </>
         )}
 
-        <section className="home-feature lotos-card" onClick={onOpenCabinet} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && onOpenCabinet()}>
-          <div className="home-feature__icon-wrap">
-            <span className="home-feature__icon" aria-hidden="true">✦</span>
-          </div>
-          <div className="home-feature__body">
-            <h3 className="home-feature__title">Личный кабинет</h3>
-            <p className="home-feature__text">
-              Абонемент, записи, история визитов и статистика
-            </p>
-          </div>
-          <span className="home-feature__arrow" aria-hidden="true">→</span>
-        </section>
-
-        <section
-          className="home-feature lotos-card"
-          onClick={onOpenSchedule}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => e.key === 'Enter' && onOpenSchedule()}
-        >
-          <div className="home-feature__icon-wrap home-feature__icon-wrap--schedule">
-            <span className="home-feature__icon" aria-hidden="true">◷</span>
-          </div>
-          <div className="home-feature__body">
-            <h3 className="home-feature__title">Расписание</h3>
-            <p className="home-feature__text">
-              Занятия на сегодня и ближайшие дни — время, тренер и свободные места
-            </p>
-          </div>
-          <span className="home-feature__arrow" aria-hidden="true">→</span>
-        </section>
-
-        <section
-          className="home-feature lotos-card"
-          onClick={onOpenRecords}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => e.key === 'Enter' && onOpenRecords()}
-        >
-          <div className="home-feature__icon-wrap home-feature__icon-wrap--records">
-            <span className="home-feature__icon" aria-hidden="true">◎</span>
-          </div>
-          <div className="home-feature__body">
-            <h3 className="home-feature__title">Записи</h3>
-            <p className="home-feature__text">
-              Предстоящие и прошедшие занятия — детали и отмена записи
-            </p>
-          </div>
-          <span className="home-feature__arrow" aria-hidden="true">→</span>
-        </section>
+        {!loading && studioFeed && (
+          <>
+            <HomeVkStories
+              stories={studioFeed.stories}
+              storiesAvailable={studioFeed.storiesAvailable}
+              groupUrl={studioFeed.place?.groupUrl ?? null}
+            />
+            <HomeVkPosts posts={studioFeed.posts} />
+            <HomeStudioPlace place={studioFeed.place} />
+          </>
+        )}
 
         {!loading && (
           <button
             type="button"
-            className="lotos-btn lotos-btn--secondary lotos-btn--stretched"
+            className="lotos-btn lotos-btn--secondary lotos-btn--stretched home-page__refresh"
             disabled={refreshing}
             onClick={() => void load(true)}
           >
@@ -205,9 +178,6 @@ export function HomePage({
           </button>
         )}
 
-        <button type="button" className="lotos-btn lotos-btn--ghost lotos-btn--stretched" onClick={onLogout}>
-          Выйти из аккаунта
-        </button>
       </main>
 
       {rebookData && (

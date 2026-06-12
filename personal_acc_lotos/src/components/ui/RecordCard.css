@@ -87,22 +87,22 @@
 }
 
 .record-card__badge--waiting {
-  background: rgba(184, 137, 58, 0.12);
+  background: var(--lotos-warning-bg);
   color: var(--lotos-warning);
 }
 
 .record-card__badge--confirmed {
-  background: rgba(107, 127, 154, 0.12);
+  background: var(--lotos-info-bg);
   color: var(--lotos-info);
 }
 
 .record-card__badge--done {
-  background: rgba(90, 125, 98, 0.12);
+  background: var(--lotos-success-bg);
   color: var(--lotos-success);
 }
 
 .record-card__badge--missed {
-  background: rgba(74, 44, 61, 0.08);
+  background: var(--lotos-plum-bg);
   color: var(--lotos-text-muted);
 }
 

@@ -43,17 +43,17 @@
 }
 
 .abonement-card__status--active {
-  background: rgba(90, 125, 98, 0.12);
+  background: var(--lotos-success-bg);
   color: var(--lotos-success);
 }
 
 .abonement-card__status--frozen {
-  background: rgba(107, 127, 154, 0.12);
+  background: var(--lotos-info-bg);
   color: var(--lotos-info);
 }
 
 .abonement-card__status--expired {
-  background: rgba(184, 137, 58, 0.12);
+  background: var(--lotos-warning-bg);
   color: var(--lotos-warning);
 }
 

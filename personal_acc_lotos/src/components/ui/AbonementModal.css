@@ -12,7 +12,7 @@
   position: absolute;
   inset: 0;
   border: none;
-  background: rgba(42, 31, 36, 0.45);
+  background: var(--lotos-overlay);
   backdrop-filter: blur(4px);
   cursor: pointer;
 }
@@ -93,17 +93,17 @@
 }
 
 .abonement-modal__status--active {
-  background: rgba(90, 125, 98, 0.12);
+  background: var(--lotos-success-bg);
   color: var(--lotos-success);
 }
 
 .abonement-modal__status--frozen {
-  background: rgba(107, 127, 154, 0.12);
+  background: var(--lotos-info-bg);
   color: var(--lotos-info);
 }
 
 .abonement-modal__status--expired {
-  background: rgba(184, 137, 58, 0.12);
+  background: var(--lotos-warning-bg);
   color: var(--lotos-warning);
 }
 
@@ -202,7 +202,7 @@
   font-size: 12px;
   padding: 6px 10px;
   border-radius: var(--lotos-radius-pill);
-  background: rgba(107, 127, 154, 0.1);
+  background: var(--lotos-info-bg);
   color: var(--lotos-info);
 }
 

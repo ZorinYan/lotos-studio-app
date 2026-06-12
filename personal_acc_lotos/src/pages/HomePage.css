@@ -13,6 +13,10 @@
   padding: 24px 0 8px;
 }
 
+.home-page__refresh {
+  margin-top: 28px;
+}
+
 .home-rebook {
   display: flex;
   align-items: center;
@@ -69,7 +73,7 @@
   width: 200px;
   height: 200px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(196, 168, 130, 0.2) 0%, transparent 65%);
+  background: radial-gradient(circle, var(--lotos-hero-orb) 0%, transparent 65%);
   pointer-events: none;
 }
 
@@ -84,7 +88,7 @@
 
 .home-hero__greeting {
   position: relative;
-  margin: 0 0 8px;
+  margin: 0 0 16px;
   font-family: var(--lotos-font-display);
   font-size: 36px;
   font-weight: 500;
@@ -138,13 +142,13 @@
 }
 
 .home-feature__icon-wrap--schedule {
-  background: linear-gradient(135deg, #5a4a3d 0%, var(--lotos-rose) 100%);
-  box-shadow: 0 8px 24px rgba(196, 168, 130, 0.35);
+  background: var(--lotos-feature-schedule-gradient);
+  box-shadow: var(--lotos-feature-schedule-shadow);
 }
 
 .home-feature__icon-wrap--records {
-  background: linear-gradient(135deg, #4a2c3d 0%, #7d5a6a 100%);
-  box-shadow: 0 8px 24px rgba(74, 44, 61, 0.28);
+  background: var(--lotos-feature-records-gradient);
+  box-shadow: var(--lotos-feature-records-shadow);
 }
 
 .home-feature__icon {

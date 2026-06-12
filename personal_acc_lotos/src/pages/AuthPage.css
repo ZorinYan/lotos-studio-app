@@ -18,7 +18,7 @@
   width: 220px;
   height: 220px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(196, 168, 130, 0.22) 0%, transparent 65%);
+  background: radial-gradient(circle, var(--lotos-hero-orb) 0%, transparent 65%);
   pointer-events: none;
 }
 

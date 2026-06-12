@@ -1,0 +1,107 @@
+.settings-page__content {
+  padding: var(--lotos-space-md);
+}
+
+.settings-page__loading {
+  display: flex;
+  justify-content: center;
+  padding: 48px 0;
+}
+
+.settings-page__account {
+  margin: 0 0 var(--lotos-space-md);
+  font-size: var(--lotos-body-sm);
+  color: var(--lotos-text-secondary);
+}
+
+.settings-section {
+  padding: var(--lotos-space-md);
+  margin-bottom: var(--lotos-space-md);
+}
+
+.settings-section__title {
+  margin: 0 0 8px;
+  font-size: var(--lotos-body);
+  font-weight: 700;
+  color: var(--lotos-text);
+}
+
+.settings-section__hint {
+  margin: 0 0 14px;
+  font-size: var(--lotos-body-sm);
+  line-height: 1.45;
+  color: var(--lotos-text-secondary);
+}
+
+.settings-section__note {
+  margin: 8px 0 0;
+  font-size: var(--lotos-body-sm);
+  color: var(--lotos-text-muted);
+}
+
+.settings-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.settings-chips__item {
+  border: 1px solid var(--lotos-border);
+  border-radius: var(--lotos-radius-pill);
+  padding: 8px 14px;
+  background: var(--lotos-blush);
+  color: var(--lotos-text);
+  font-size: var(--lotos-body-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.settings-chips__item--active {
+  border-color: var(--lotos-plum);
+  background: var(--lotos-chip-active-bg);
+  color: var(--lotos-plum);
+}
+
+.settings-chips__item:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.settings-toggle {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.settings-toggle .settings-section__title {
+  margin-bottom: 6px;
+}
+
+.settings-toggle .settings-section__hint {
+  margin-bottom: 0;
+}
+
+.settings-logout {
+  display: flex;
+  justify-content: center;
+  margin-top: 40px;
+  padding-top: 28px;
+  padding-bottom: 12px;
+}
+
+.settings-logout__badge {
+  border: 1px solid var(--lotos-logout-border);
+  border-radius: var(--lotos-radius-pill);
+  padding: 10px 18px;
+  background: var(--lotos-logout-bg);
+  color: var(--lotos-logout-text);
+  font-size: var(--lotos-body-sm);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+}
+
+.settings-logout__badge:active {
+  transform: scale(0.98);
+}

@@ -14,7 +14,8 @@ type SchedulePageProps = {
   studioName: string
   guestMode?: boolean
   authenticated?: boolean
-  onBack: () => void
+  favoriteTrainerId?: number | null
+  onBack?: () => void
   onAuthenticated?: () => void
 }
 
@@ -27,6 +28,7 @@ export function SchedulePage({
   studioName,
   guestMode = false,
   authenticated = true,
+  favoriteTrainerId = null,
   onBack,
   onAuthenticated,
 }: SchedulePageProps) {
@@ -82,6 +84,12 @@ export function SchedulePage({
       .catch(() => setFilterOptions(null))
   }, [])
 
+  useEffect(() => {
+    if (favoriteTrainerId != null && !guestMode) {
+      setTrainerId(favoriteTrainerId)
+    }
+  }, [favoriteTrainerId, guestMode])
+
   const filteredClasses = useMemo(() => {
     if (!data) return []
     return data.classes.filter((item) => {
@@ -106,7 +114,11 @@ export function SchedulePage({
 
   return (
     <div className="schedule-page">
-      <AppHeader title="Расписание" showCabinetButton={false} onBack={onBack} />
+      <AppHeader
+        title="Расписание"
+        showCabinetButton={false}
+        onBack={onBack}
+      />
 
       <div className="schedule-page__content">
         <section className="schedule-hero">
