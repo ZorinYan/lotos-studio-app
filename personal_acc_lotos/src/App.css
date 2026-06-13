@@ -1,3 +1,4 @@
-#root {
-  min-height: 100vh;
+.lotos-app {
+  max-width: 100%;
+  overflow-x: clip;
 }

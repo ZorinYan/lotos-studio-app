@@ -9,6 +9,7 @@ class CabinetData:
     abonements: list[dict] = field(default_factory=list)
     upcoming_records: list[dict] = field(default_factory=list)
     recent_visits: list[dict] = field(default_factory=list)
+    visit_history: list[dict] = field(default_factory=list)
 
 
 class CabinetService:
@@ -24,9 +25,11 @@ class CabinetService:
         abonements = self.client.get_abonements_by_phone(phone)
 
         upcoming = self.client.get_upcoming_records(client_id, limit=3)
+        visit_history: list[dict] = []
         recent: list[dict] = []
         try:
-            recent = self.client.get_recent_visits(phone, limit=5)
+            visit_history = self.client.get_recent_visits(phone, limit=60)
+            recent = visit_history[:5]
         except Exception:
             pass
 
@@ -35,4 +38,5 @@ class CabinetService:
             abonements=abonements,
             upcoming_records=upcoming,
             recent_visits=recent,
+            visit_history=visit_history,
         )

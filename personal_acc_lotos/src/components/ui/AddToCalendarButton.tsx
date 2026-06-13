@@ -5,9 +5,14 @@ import './AddToCalendarButton.css'
 type AddToCalendarButtonProps = {
   event: CalendarEventInput
   stretched?: boolean
+  label?: string
 }
 
-export function AddToCalendarButton({ event, stretched = false }: AddToCalendarButtonProps) {
+export function AddToCalendarButton({
+  event,
+  stretched = false,
+  label = 'Добавить в календарь',
+}: AddToCalendarButtonProps) {
   const [open, setOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -42,7 +47,7 @@ export function AddToCalendarButton({ event, stretched = false }: AddToCalendarB
         className={`lotos-btn lotos-btn--secondary${stretched ? ' lotos-btn--stretched' : ''}`}
         onClick={() => setOpen((value) => !value)}
       >
-        Добавить в календарь
+        {label}
       </button>
 
       {open && (

@@ -1,0 +1,49 @@
+.progress-ring {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.progress-ring__svg {
+  display: block;
+  transform: rotate(-90deg);
+}
+
+.progress-ring__track {
+  fill: none;
+  stroke: var(--lotos-blush);
+}
+
+.progress-ring__fill {
+  fill: none;
+  stroke: url(#progress-ring-gradient);
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.progress-ring__content {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--lotos-text-on-plum);
+}
+
+/* Gradient via CSS variable fallback when no SVG defs */
+.progress-ring__fill {
+  stroke: var(--lotos-rose-light);
+}
+
+[data-lotos-theme='light'] .progress-ring__fill {
+  stroke: #e8d9c4;
+}
+
+[data-lotos-theme='dark'] .progress-ring__fill {
+  stroke: #c9ad86;
+}
+
+.progress-ring__track {
+  stroke: rgba(255, 255, 255, 0.18);
+}

@@ -4,6 +4,7 @@ import { fetchSettings, updateSettings } from '../api/settings'
 import { fetchScheduleFilters } from '../api/schedule'
 import { ApiError } from '../api/client'
 import { AppHeader } from '../components/AppHeader'
+import { ConfirmModal } from '../components/ui/ConfirmModal'
 import { useLotosTheme } from '../hooks/useLotosTheme'
 import {
   isVkEnvironment,
@@ -15,7 +16,7 @@ import './SettingsPage.css'
 type SettingsPageProps = {
   vkUserId: number
   phoneDisplay: string | null
-  onLogout: () => void
+  onLogout: () => void | Promise<void>
 }
 
 export function SettingsPage({ vkUserId, phoneDisplay, onLogout }: SettingsPageProps) {
@@ -27,6 +28,8 @@ export function SettingsPage({ vkUserId, phoneDisplay, onLogout }: SettingsPageP
   const [notificationsEnabled, setNotificationsEnabled] = useState(false)
   const [notificationsAvailable, setNotificationsAvailable] = useState(true)
   const [trainers, setTrainers] = useState<{ id: number; name: string }[]>([])
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false)
+  const [logoutLoading, setLogoutLoading] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -97,6 +100,16 @@ export function SettingsPage({ vkUserId, phoneDisplay, onLogout }: SettingsPageP
       setError(err instanceof ApiError ? err.message : 'Не удалось обновить уведомления')
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function handleLogoutConfirm() {
+    setLogoutLoading(true)
+    try {
+      await onLogout()
+    } finally {
+      setLogoutLoading(false)
+      setLogoutConfirmOpen(false)
     }
   }
 
@@ -190,7 +203,7 @@ export function SettingsPage({ vkUserId, phoneDisplay, onLogout }: SettingsPageP
               <button
                 type="button"
                 className="settings-logout__badge"
-                onClick={onLogout}
+                onClick={() => setLogoutConfirmOpen(true)}
               >
                 Выйти из аккаунта
               </button>
@@ -198,6 +211,18 @@ export function SettingsPage({ vkUserId, phoneDisplay, onLogout }: SettingsPageP
           </>
         )}
       </main>
+
+      {logoutConfirmOpen && (
+        <ConfirmModal
+          title="Выйти из аккаунта?"
+          message="Вы выйдете из личного кабинета на этом устройстве. Для записей и абонемента потребуется снова войти по номеру телефона."
+          confirmLabel="Выйти"
+          onConfirm={() => void handleLogoutConfirm()}
+          onClose={() => setLogoutConfirmOpen(false)}
+          danger
+          loading={logoutLoading}
+        />
+      )}
 
       {error && (
         <Snackbar onClose={() => setError(null)} duration={5000}>

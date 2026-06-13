@@ -1,17 +1,27 @@
-import { ScreenSpinner, Snackbar } from '@vkontakte/vkui'
+import { Snackbar } from '@vkontakte/vkui'
 import { useCallback, useEffect, useState } from 'react'
+import { fetchAbonements } from '../api/abonement'
 import { fetchCabinet } from '../api/cabinet'
 import { ApiError } from '../api/client'
 import { AppHeader } from '../components/AppHeader'
 import { AbonementCard } from '../components/ui/AbonementCard'
 import { AbonementModal } from '../components/ui/AbonementModal'
+import { PullToRefresh } from '../components/ui/PullToRefresh'
 import { RecordCard } from '../components/ui/RecordCard'
 import { RecordModal } from '../components/ui/RecordModal'
 import { StatTile } from '../components/ui/StatTile'
+import { VisitActivityChart } from '../components/ui/VisitActivityChart'
+import { VisitRhythmCard } from '../components/ui/VisitRhythmCard'
 import { VisitRow } from '../components/ui/VisitRow'
+import { CabinetPageSkeleton } from '../components/ui/skeletons/PageSkeletons'
 import type { CabinetAbonement, CabinetData } from '../types/cabinet'
 import type { UserRecord } from '../types/records'
 import { formatMoney } from '../utils/format'
+import {
+  buildMonthlyVisitBuckets,
+  collectVisitDateIsos,
+  computeVisitRhythm,
+} from '../utils/visitAnalytics'
 import './CabinetPage.css'
 
 type CabinetPageProps = {
@@ -35,8 +45,27 @@ export function CabinetPage({ vkUserId, studioName, onBack, onOpenRecords }: Cab
     setError(null)
 
     try {
-      const cabinet = await fetchCabinet(vkUserId, isRefresh)
-      setData(cabinet)
+      const [cabinetResult, abonementResult] = await Promise.allSettled([
+        fetchCabinet(vkUserId, isRefresh),
+        fetchAbonements(vkUserId),
+      ])
+
+      if (cabinetResult.status === 'fulfilled') {
+        let cabinet = cabinetResult.value
+        if (abonementResult.status === 'fulfilled') {
+          cabinet = {
+            ...cabinet,
+            abonements: abonementResult.value.abonements,
+          }
+        }
+        setData(cabinet)
+      } else {
+        setError(
+          cabinetResult.reason instanceof ApiError
+            ? cabinetResult.reason.message
+            : 'Не удалось загрузить кабинет',
+        )
+      }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Не удалось загрузить кабинет')
     } finally {
@@ -53,8 +82,8 @@ export function CabinetPage({ vkUserId, studioName, onBack, onOpenRecords }: Cab
     return (
       <div className="cabinet-page">
         <AppHeader title="Личный кабинет" showCabinetButton={false} onBack={onBack} />
-        <div className="cabinet-page__loading">
-          <ScreenSpinner />
+        <div className="cabinet-page__content">
+          <CabinetPageSkeleton />
         </div>
       </div>
     )
@@ -75,13 +104,21 @@ export function CabinetPage({ vkUserId, studioName, onBack, onOpenRecords }: Cab
     )
   }
 
-  const { profile, abonements, upcomingRecords, recentVisits } = data
+  const { profile, abonements, upcomingRecords, recentVisits, abonementUsageVisits, visitHistory } = data
   const firstName = profile.name.split(' ')[0]
+  const visitDateIsos = collectVisitDateIsos(
+    visitHistory ?? [],
+    recentVisits,
+    abonementUsageVisits,
+  )
+  const monthlyBuckets = buildMonthlyVisitBuckets(visitDateIsos, 3)
+  const visitRhythm = computeVisitRhythm(visitDateIsos)
 
   return (
     <div className="cabinet-page">
       <AppHeader title="Личный кабинет" showCabinetButton={false} onBack={onBack} />
 
+      <PullToRefresh onRefresh={() => load(true)} refreshing={refreshing}>
       <div className="cabinet-page__content">
         <section className="cabinet-hero">
           <div className="cabinet-hero__glow" aria-hidden="true" />
@@ -102,6 +139,14 @@ export function CabinetPage({ vkUserId, studioName, onBack, onOpenRecords }: Cab
 
         <section className="cabinet-section">
           <h3 className="lotos-section-title">Ваша статистика</h3>
+          {visitRhythm && (
+            <div className="cabinet-section__rhythm">
+              <VisitRhythmCard rhythm={visitRhythm} />
+            </div>
+          )}
+          <div className="cabinet-section__chart">
+            <VisitActivityChart buckets={monthlyBuckets} />
+          </div>
           <div className="cabinet-stats">
             <StatTile label="Визитов в студии" value={String(profile.visits)} accent />
             {profile.spent > 0 && (
@@ -172,16 +217,8 @@ export function CabinetPage({ vkUserId, studioName, onBack, onOpenRecords }: Cab
             </div>
           )}
         </section>
-
-        <button
-          type="button"
-          className="lotos-btn lotos-btn--secondary lotos-btn--stretched"
-          disabled={refreshing}
-          onClick={() => void load(true)}
-        >
-          {refreshing ? 'Обновляем…' : 'Обновить данные'}
-        </button>
       </div>
+      </PullToRefresh>
 
       {selectedAbonement && (
         <AbonementModal

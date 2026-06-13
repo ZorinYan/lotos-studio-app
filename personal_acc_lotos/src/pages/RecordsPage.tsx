@@ -1,8 +1,10 @@
-import { ScreenSpinner, Snackbar } from '@vkontakte/vkui'
+import { Snackbar } from '@vkontakte/vkui'
 import { useCallback, useEffect, useState } from 'react'
 import { fetchRecords } from '../api/records'
 import { ApiError } from '../api/client'
 import { AppHeader } from '../components/AppHeader'
+import { PullToRefresh } from '../components/ui/PullToRefresh'
+import { RecordsPageSkeleton } from '../components/ui/skeletons/PageSkeletons'
 import { RecordCard } from '../components/ui/RecordCard'
 import { RecordModal } from '../components/ui/RecordModal'
 import type { RecordFilter, RecordsData, UserRecord } from '../types/records'
@@ -60,6 +62,10 @@ export function RecordsPage({ vkUserId, studioName, onBack }: RecordsPageProps) 
     <div className="records-page">
       <AppHeader title="Записи" showCabinetButton={false} onBack={onBack} />
 
+      <PullToRefresh
+        onRefresh={() => load(filter, true)}
+        refreshing={refreshing}
+      >
       <div className="records-page__content">
         <section className="records-hero">
           <p className="records-hero__eyebrow">Lotos Studio</p>
@@ -94,9 +100,7 @@ export function RecordsPage({ vkUserId, studioName, onBack }: RecordsPageProps) 
         </div>
 
         {loading ? (
-          <div className="records-page__loading">
-            <ScreenSpinner />
-          </div>
+          <RecordsPageSkeleton />
         ) : !data || data.records.length === 0 ? (
           <div className="lotos-empty lotos-card records-page__empty">
             <p className="records-page__empty-title">{emptyText}</p>
@@ -113,18 +117,8 @@ export function RecordsPage({ vkUserId, studioName, onBack }: RecordsPageProps) 
             ))}
           </div>
         )}
-
-        {!loading && (
-          <button
-            type="button"
-            className="lotos-btn lotos-btn--secondary lotos-btn--stretched records-page__refresh"
-            disabled={refreshing}
-            onClick={() => void load(filter, true)}
-          >
-            {refreshing ? 'Обновляем…' : 'Обновить записи'}
-          </button>
-        )}
       </div>
+      </PullToRefresh>
 
       {selectedRecord && (
         <RecordModal

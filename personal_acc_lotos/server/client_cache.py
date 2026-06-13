@@ -51,6 +51,17 @@ def clear_client_data_caches(
             _usage_visits.pop(key, None)
 
 
+def fetch_abonements_fresh(
+    yclients: YClientsClient,
+    phone: str,
+) -> list[dict]:
+    """Абонементы из YClients без кэша — остаток занятий должен быть актуальным."""
+    try:
+        return yclients.get_abonements_by_phone(phone)
+    except Exception:
+        return []
+
+
 def fetch_cabinet_data(
     yclients: YClientsClient,
     phone: str,

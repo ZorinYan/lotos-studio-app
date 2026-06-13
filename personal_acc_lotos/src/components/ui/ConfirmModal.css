@@ -1,0 +1,67 @@
+.confirm-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  place-items: center;
+  padding: var(--lotos-space-md);
+}
+
+.confirm-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  border: none;
+  background: var(--lotos-overlay);
+  backdrop-filter: blur(4px);
+  cursor: pointer;
+}
+
+.confirm-modal__card {
+  position: relative;
+  width: 100%;
+  max-width: 360px;
+  padding: var(--lotos-space-lg);
+  animation: confirm-modal-in 0.22s ease-out;
+}
+
+@keyframes confirm-modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.confirm-modal__title {
+  margin: 0 0 10px;
+  font-family: var(--lotos-font-display);
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 1.2;
+  color: var(--lotos-text);
+}
+
+.confirm-modal__message {
+  margin: 0 0 var(--lotos-space-lg);
+  font-size: var(--lotos-body);
+  line-height: 1.5;
+  color: var(--lotos-text-secondary);
+}
+
+.confirm-modal__actions {
+  display: grid;
+  gap: 8px;
+}
+
+.confirm-modal__confirm--danger {
+  background: var(--lotos-btn-danger-gradient);
+  color: var(--lotos-text-on-primary);
+  box-shadow: var(--lotos-btn-danger-shadow);
+}
+
+.confirm-modal__confirm--danger:active {
+  transform: scale(0.98);
+}

@@ -40,7 +40,14 @@
   letter-spacing: 0.02em;
 }
 
+.app-tab-shell {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
 .app-tab-shell__content {
   min-height: 100vh;
+  max-width: 100%;
+  overflow-x: clip;
   padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px));
 }

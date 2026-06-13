@@ -1,10 +1,12 @@
 import requests
 
 from _lib_path import ensure_lib_path
+from abonement_api import merge_fresh_abonements
 from abonement_serializer import serialize_abonement, serialize_usage_visit
 from client_cache import (
     clear_client_data_caches,
     fetch_abonement_usage_visits,
+    fetch_abonements_fresh,
     fetch_cabinet_data,
     get_cached_cabinet,
     set_cached_cabinet,
@@ -23,6 +25,7 @@ from utils import storage  # noqa: E402
 from utils.phone import format_phone_display  # noqa: E402
 from yclients.formatters_cabinet import _client_name  # noqa: E402
 from utils.dates import format_date_short  # noqa: E402
+from yclients.client import YClientsClient  # noqa: E402
 
 from auth_service import AuthError  # noqa: E402
 
@@ -31,12 +34,40 @@ def _serialize_abonements(raw_items: list[dict]) -> list[dict]:
     return [serialize_abonement(item) for item in raw_items]
 
 
+def _visit_date_iso(visit: dict) -> str | None:
+    dt = YClientsClient._parse_record_datetime(visit)
+    if dt:
+        return dt.date().isoformat()
+    raw = visit.get("date") or visit.get("datetime")
+    if not raw:
+        return None
+    text = str(raw)
+    if text.isdigit():
+        from datetime import datetime
+
+        try:
+            return datetime.fromtimestamp(int(text)).date().isoformat()
+        except (ValueError, OSError):
+            return None
+    if len(text) >= 10 and text[4] == "-" and text[7] == "-":
+        return text[:10]
+    return None
+
+
 def _serialize_visit(visit: dict) -> dict:
     return {
-        "date": format_date_short(visit.get("date", "")),
+        "date": format_date_short(visit.get("date", "") or visit.get("datetime", "")),
+        "dateIso": _visit_date_iso(visit),
         "service": service_titles(visit),
         "staff": staff_name(visit),
     }
+
+
+def _serialize_visit_history(visit: dict) -> dict:
+    date_iso = _visit_date_iso(visit)
+    if not date_iso:
+        return {}
+    return {"dateIso": date_iso}
 
 
 def load_cabinet(
@@ -48,7 +79,7 @@ def load_cabinet(
     if not force_refresh:
         cached = get_cached_cabinet(vk_user_id)
         if cached is not None:
-            return cached
+            return merge_fresh_abonements(cached, vk_user_id, config)
 
     phone = storage.get_phone(vk_user_id)
     if not phone:
@@ -64,6 +95,7 @@ def load_cabinet(
     yclients = create_yclients_client(config)
     try:
         data = fetch_cabinet_data(yclients, phone, use_cache=not force_refresh)
+        fresh_abonements = fetch_abonements_fresh(yclients, phone)
     except YClientsPermissionError:
         raise AuthError(
             "service_unavailable",
@@ -91,7 +123,7 @@ def load_cabinet(
         for visit in fetch_abonement_usage_visits(
             yclients,
             phone,
-            limit=5,
+            limit=30,
             use_cache=not force_refresh,
         )
     ]
@@ -111,10 +143,16 @@ def load_cabinet(
             if profile.get("last_visit_date")
             else None,
         },
-        "abonements": _serialize_abonements(data.abonements),
+        "abonements": _serialize_abonements(fresh_abonements),
         "abonementUsageVisits": usage_visits,
         "upcomingRecords": [serialize_record(record) for record in data.upcoming_records],
         "recentVisits": [_serialize_visit(visit) for visit in data.recent_visits],
+        "visitHistory": [
+            entry
+            for visit in data.visit_history
+            for entry in [_serialize_visit_history(visit)]
+            if entry
+        ],
     }
     set_cached_cabinet(vk_user_id, payload)
     return payload

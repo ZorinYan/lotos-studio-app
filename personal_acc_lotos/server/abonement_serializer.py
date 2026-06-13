@@ -61,8 +61,11 @@ def extract_balance_services(item: dict) -> list[dict]:
     links = container.get("links") or []
 
     parsed_total = _parse_balance_string_value(item.get("balance_string"))
+    link_count = sum(1 for link in links if isinstance(link, dict))
 
     for link in links:
+        if not isinstance(link, dict):
+            continue
         title = _link_title(link)
         if title is None:
             continue
@@ -73,7 +76,13 @@ def extract_balance_services(item: dict) -> list[dict]:
                 remaining = int(count)
             except (TypeError, ValueError):
                 remaining = None
-        if remaining == 0 and parsed_total and parsed_total > 0 and is_active_abonement(item):
+        elif (
+            parsed_total is not None
+            and parsed_total > 0
+            and link_count == 1
+            and is_active_abonement(item)
+        ):
+            # balance_string — только если у единственной услуги нет count в link
             remaining = parsed_total
         if remaining is None:
             continue
@@ -108,12 +117,70 @@ def total_remaining(services: list[dict], item: dict) -> int | None:
     return fallback
 
 
+def abonement_balance_total(item: dict) -> int | None:
+    raw = item.get("united_balance_services_count")
+    if raw is not None:
+        try:
+            total = int(raw)
+            if total > 0:
+                return total
+        except (TypeError, ValueError):
+            pass
+
+    abonement_type = item.get("type") or {}
+    for key in ("count", "visits_count", "amount"):
+        raw = abonement_type.get(key)
+        if raw is None:
+            continue
+        try:
+            total = int(raw)
+            if total > 0:
+                return total
+        except (TypeError, ValueError):
+            continue
+    return None
+
+
 def serialize_usage_visit(visit: dict) -> dict:
+    date_iso = None
+    dt_raw = visit.get("datetime") or visit.get("date", "")
+    if dt_raw:
+        from yclients.client import YClientsClient
+
+        dt = YClientsClient._parse_record_datetime({"datetime": dt_raw, "date": dt_raw})
+        if dt:
+            date_iso = dt.date().isoformat()
+
     return {
-        "datetime": format_datetime_short(visit.get("datetime") or visit.get("date", "")),
+        "datetime": format_datetime_short(dt_raw),
+        "dateIso": date_iso,
         "service": _service_titles(visit),
         "staff": _staff_name(visit),
     }
+
+
+def pick_primary_abonement(abonements: list[dict]) -> dict | None:
+    """Первый активный абонемент с ненулевым остатком (как в интерфейсе YClients)."""
+    if not abonements:
+        return None
+
+    inactive_markers = ("просроч", "законч", "архив", "исчерп", "замороз")
+
+    for item in abonements:
+        if item.get("isFrozen"):
+            continue
+        status = str(item.get("status", "")).lower()
+        if any(marker in status for marker in inactive_markers):
+            continue
+        remaining = item.get("balanceRemaining")
+        if remaining is not None and remaining > 0:
+            return item
+
+    for item in abonements:
+        if not item.get("isFrozen"):
+            return item
+
+    return abonements[0]
 
 
 def serialize_abonement(item: dict) -> dict:
@@ -128,6 +195,7 @@ def serialize_abonement(item: dict) -> dict:
         "id": item.get("id"),
         "title": abonement_type.get("title", "Абонемент"),
         "balanceRemaining": total_remaining(services, item),
+        "balanceTotal": abonement_balance_total(item),
         "services": services,
         "isUnitedBalance": bool(item.get("is_united_balance")),
         "status": status_title,

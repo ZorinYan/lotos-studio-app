@@ -1,0 +1,34 @@
+.visit-rhythm {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: var(--lotos-space-md) var(--lotos-space-lg);
+  background: var(--lotos-widget-gradient);
+}
+
+.visit-rhythm__icon {
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--lotos-plum) 0%, var(--lotos-plum-soft) 100%);
+  color: var(--lotos-text-on-plum);
+  font-size: 22px;
+  box-shadow: var(--lotos-shadow-sm);
+}
+
+.visit-rhythm__message {
+  margin: 0;
+  font-family: var(--lotos-font-display);
+  font-size: 20px;
+  line-height: 1.2;
+  color: var(--lotos-text);
+}
+
+.visit-rhythm__detail {
+  margin: 4px 0 0;
+  font-size: var(--lotos-caption);
+  color: var(--lotos-text-secondary);
+}

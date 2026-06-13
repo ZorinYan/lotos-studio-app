@@ -1,9 +1,16 @@
 .home-page {
   min-height: 100vh;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
   background: var(--lotos-bg);
 }
 
 .home-page__content {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: clip;
   padding: var(--lotos-space-lg) var(--lotos-space-md) var(--lotos-space-xl);
 }
 
@@ -15,6 +22,14 @@
 
 .home-page__refresh {
   margin-top: 28px;
+}
+
+.home-page__feed {
+  display: grid;
+  gap: 0;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .home-rebook {
@@ -51,11 +66,24 @@
   font-size: var(--lotos-caption);
   color: var(--lotos-text-secondary);
   line-height: 1.45;
+  overflow-wrap: anywhere;
 }
 
 .home-rebook__btn {
   flex-shrink: 0;
   white-space: nowrap;
+}
+
+@media (max-width: 520px) {
+  .home-rebook {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .home-rebook__btn {
+    width: 100%;
+    white-space: normal;
+  }
 }
 
 .home-hero {
@@ -90,11 +118,12 @@
   position: relative;
   margin: 0 0 16px;
   font-family: var(--lotos-font-display);
-  font-size: 36px;
+  font-size: clamp(28px, 8vw, 36px);
   font-weight: 500;
   line-height: 1.1;
   color: var(--lotos-text);
   letter-spacing: 0.01em;
+  overflow-wrap: anywhere;
 }
 
 .home-hero__studio {

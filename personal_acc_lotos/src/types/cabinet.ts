@@ -18,6 +18,7 @@ export type AbonementServiceBalance = {
 
 export type AbonementUsageVisit = {
   datetime: string
+  dateIso: string | null
   service: string
   staff: string
 }
@@ -26,6 +27,7 @@ export type CabinetAbonement = {
   id?: number
   title: string
   balanceRemaining: number | null
+  balanceTotal?: number | null
   services: AbonementServiceBalance[]
   isUnitedBalance: boolean
   status: string
@@ -44,8 +46,13 @@ export type CabinetAbonement = {
 
 export type CabinetVisit = {
   date: string
+  dateIso: string | null
   service: string
   staff: string
+}
+
+export type VisitHistoryEntry = {
+  dateIso: string
 }
 
 export type CabinetData = {
@@ -54,4 +61,5 @@ export type CabinetData = {
   abonementUsageVisits: AbonementUsageVisit[]
   upcomingRecords: UserRecord[]
   recentVisits: CabinetVisit[]
+  visitHistory?: VisitHistoryEntry[]
 }

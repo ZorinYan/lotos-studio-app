@@ -1,5 +1,6 @@
-import { ScreenSpinner, Snackbar } from '@vkontakte/vkui'
-import { useCallback, useEffect, useState } from 'react'
+import { Snackbar } from '@vkontakte/vkui'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { fetchAbonements } from '../api/abonement'
 import { fetchHome } from '../api/home'
 import { fetchRebookSlots } from '../api/schedule'
 import { fetchStudioFeed } from '../api/studio'
@@ -11,10 +12,14 @@ import { HomeNextRecordWidget } from '../components/ui/HomeNextRecordWidget'
 import { HomeStudioPlace } from '../components/ui/HomeStudioPlace'
 import { HomeVkPosts } from '../components/ui/HomeVkPosts'
 import { HomeVkStories } from '../components/ui/HomeVkStories'
+import { PullToRefresh } from '../components/ui/PullToRefresh'
 import { RebookModal } from '../components/ui/RebookModal'
+import { RevealStack } from '../components/ui/RevealStack'
+import { HomePageSkeleton } from '../components/ui/skeletons/PageSkeletons'
 import type { HomeData } from '../types/home'
 import type { RebookData } from '../types/schedule'
 import type { StudioFeed } from '../types/studio'
+import { buildStudioRouteUrl } from '../utils/studioRoute'
 import './HomePage.css'
 
 type HomePageProps = {
@@ -47,13 +52,22 @@ export function HomePage({
     else setLoading(true)
     setError(null)
 
-    const [homeResult, feedResult] = await Promise.allSettled([
+    const [homeResult, feedResult, abonementResult] = await Promise.allSettled([
       fetchHome(vkUserId, isRefresh),
       fetchStudioFeed(vkUserId, isRefresh),
+      fetchAbonements(vkUserId),
     ])
 
     if (homeResult.status === 'fulfilled') {
-      setHomeData(homeResult.value)
+      let home = homeResult.value
+      if (abonementResult.status === 'fulfilled') {
+        home = {
+          ...home,
+          abonement: abonementResult.value.primary,
+          alerts: abonementResult.value.alerts,
+        }
+      }
+      setHomeData(home)
     } else {
       setHomeData(null)
       if (isRefresh) {
@@ -94,91 +108,84 @@ export function HomePage({
     ? `${firstName}, добро пожаловать`
     : 'Добро пожаловать'
   const displayStudio = homeData?.studioName ?? studioName
+  const routeUrl = useMemo(
+    () => buildStudioRouteUrl(studioFeed?.place),
+    [studioFeed?.place],
+  )
 
   return (
     <div className="home-page">
       <AppHeader showCabinetButton={false} />
 
-      <main className="home-page__content">
-        <section className="home-hero">
-          <div className="home-hero__orb" aria-hidden="true" />
-          <p className="home-hero__eyebrow">Lotos Studio</p>
-          <h2 className="home-hero__greeting">{greeting}</h2>
-          {phoneDisplay && (
-            <span className="home-hero__badge">{phoneDisplay}</span>
-          )}
-        </section>
-
-        {loading ? (
-          <div className="home-page__loading">
-            <ScreenSpinner />
-          </div>
-        ) : (
-          <>
-            <HomeAlertsBanner alerts={homeData?.alerts ?? []} />
-
-            <HomeAbonementWidget
-              abonement={homeData?.abonement ?? null}
-              onOpenCabinet={onOpenCabinet}
-            />
-
-            {homeData?.rebook?.available && homeData.rebook.prefs && (
-              <section className="home-rebook lotos-card">
-                <div className="home-rebook__body">
-                  <p className="home-rebook__eyebrow">Быстрая запись</p>
-                  <h3 className="home-rebook__title">Записаться снова</h3>
-                  <p className="home-rebook__text">
-                    {homeData.rebook.prefs.serviceTitle} · {homeData.rebook.prefs.staffName}
-                    {homeData.rebook.slotsCount
-                      ? ` · ${homeData.rebook.slotsCount} свободных слотов`
-                      : ''}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  className="lotos-btn lotos-btn--primary home-rebook__btn"
-                  disabled={rebookLoading}
-                  onClick={() => void handleBookAgain()}
-                >
-                  {rebookLoading ? 'Ищем…' : 'Выбрать время'}
-                </button>
-              </section>
+      <PullToRefresh onRefresh={() => load(true)} refreshing={refreshing}>
+        <main className="home-page__content">
+          <section className="home-hero lotos-reveal">
+            <div className="home-hero__orb" aria-hidden="true" />
+            <p className="home-hero__eyebrow">Lotos Studio</p>
+            <h2 className="home-hero__greeting">{greeting}</h2>
+            {phoneDisplay && (
+              <span className="home-hero__badge">{phoneDisplay}</span>
             )}
+          </section>
 
-            {homeData?.nextRecord && (
-              <HomeNextRecordWidget
-                record={homeData.nextRecord}
-                studioName={displayStudio}
-                onOpenRecords={onOpenRecords}
+          {loading ? (
+            <HomePageSkeleton />
+          ) : (
+            <RevealStack>
+              <HomeAlertsBanner alerts={homeData?.alerts ?? []} />
+
+              <HomeAbonementWidget
+                abonement={homeData?.abonement ?? null}
+                onOpenCabinet={onOpenCabinet}
               />
-            )}
-          </>
-        )}
 
-        {!loading && studioFeed && (
-          <>
-            <HomeVkStories
-              stories={studioFeed.stories}
-              storiesAvailable={studioFeed.storiesAvailable}
-              groupUrl={studioFeed.place?.groupUrl ?? null}
-            />
-            <HomeVkPosts posts={studioFeed.posts} />
-            <HomeStudioPlace place={studioFeed.place} />
-          </>
-        )}
+              {homeData?.nextRecord && (
+                <HomeNextRecordWidget
+                  record={homeData.nextRecord}
+                  studioName={displayStudio}
+                  routeUrl={routeUrl}
+                  onOpenRecords={onOpenRecords}
+                />
+              )}
 
-        {!loading && (
-          <button
-            type="button"
-            className="lotos-btn lotos-btn--secondary lotos-btn--stretched home-page__refresh"
-            disabled={refreshing}
-            onClick={() => void load(true)}
-          >
-            {refreshing ? 'Обновляем…' : 'Обновить данные'}
-          </button>
-        )}
+              {homeData?.rebook?.available && homeData.rebook.prefs && (
+                <section className="home-rebook lotos-card">
+                  <div className="home-rebook__body">
+                    <p className="home-rebook__eyebrow">Быстрая запись</p>
+                    <h3 className="home-rebook__title">Записаться снова</h3>
+                    <p className="home-rebook__text">
+                      {homeData.rebook.prefs.serviceTitle} · {homeData.rebook.prefs.staffName}
+                      {homeData.rebook.slotsCount
+                        ? ` · ${homeData.rebook.slotsCount} свободных слотов`
+                        : ''}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="lotos-btn lotos-btn--primary home-rebook__btn"
+                    disabled={rebookLoading}
+                    onClick={() => void handleBookAgain()}
+                  >
+                    {rebookLoading ? 'Ищем…' : 'Выбрать время'}
+                  </button>
+                </section>
+              )}
+            </RevealStack>
+          )}
 
-      </main>
+          {!loading && studioFeed && (
+            <RevealStack className="home-page__feed">
+              <HomeVkStories
+                stories={studioFeed.stories}
+                storiesAvailable={studioFeed.storiesAvailable}
+                groupUrl={studioFeed.place?.groupUrl ?? null}
+              />
+              <HomeVkPosts posts={studioFeed.posts} />
+              <HomeStudioPlace place={studioFeed.place} />
+            </RevealStack>
+          )}
+        </main>
+      </PullToRefresh>
 
       {rebookData && (
         <RebookModal

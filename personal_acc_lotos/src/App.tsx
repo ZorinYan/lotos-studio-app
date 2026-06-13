@@ -260,7 +260,7 @@ function AppContent() {
         <SettingsPage
           vkUserId={user.id}
           phoneDisplay={phoneDisplay}
-          onLogout={() => void handleLogout()}
+          onLogout={handleLogout}
         />
       )
     }

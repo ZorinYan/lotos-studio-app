@@ -1,0 +1,107 @@
+.visit-activity {
+  padding: var(--lotos-space-lg);
+}
+
+.visit-activity--empty {
+  text-align: center;
+}
+
+.visit-activity__empty-title {
+  margin: 0 0 6px;
+  font-weight: 700;
+  color: var(--lotos-text);
+}
+
+.visit-activity__empty-text {
+  margin: 0;
+  font-size: var(--lotos-caption);
+  color: var(--lotos-text-muted);
+}
+
+.visit-activity__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: var(--lotos-space-md);
+}
+
+.visit-activity__eyebrow {
+  margin: 0 0 4px;
+  font-size: var(--lotos-label);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--lotos-rose);
+}
+
+.visit-activity__title {
+  margin: 0;
+  font-family: var(--lotos-font-display);
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--lotos-text);
+}
+
+.visit-activity__total {
+  flex-shrink: 0;
+  min-width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--lotos-radius-pill);
+  background: var(--lotos-plum-bg);
+  color: var(--lotos-plum);
+  font-weight: 700;
+}
+
+.visit-activity__chart {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  align-items: end;
+  min-height: 120px;
+}
+
+.visit-activity__bar-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.visit-activity__bar-shell {
+  width: 100%;
+  height: 88px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0 8px;
+}
+
+.visit-activity__bar {
+  width: 100%;
+  max-width: 44px;
+  border-radius: 10px 10px 4px 4px;
+  background: var(--lotos-blush);
+  transition: height 0.5s ease;
+}
+
+.visit-activity__bar--filled {
+  background: linear-gradient(180deg, var(--lotos-rose-light) 0%, var(--lotos-plum) 100%);
+  box-shadow: 0 8px 18px rgba(74, 44, 61, 0.16);
+}
+
+.visit-activity__count {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--lotos-text-secondary);
+}
+
+.visit-activity__label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--lotos-text-muted);
+}

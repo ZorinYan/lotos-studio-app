@@ -1,10 +1,12 @@
-import { ScreenSpinner, Snackbar } from '@vkontakte/vkui'
+import { Snackbar } from '@vkontakte/vkui'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { fetchSchedule, fetchScheduleFilters } from '../api/schedule'
 import { ApiError } from '../api/client'
 import { AppHeader } from '../components/AppHeader'
+import { PullToRefresh } from '../components/ui/PullToRefresh'
 import { ScheduleClassCard } from '../components/ui/ScheduleClassCard'
 import { ScheduleClassModal } from '../components/ui/ScheduleClassModal'
+import { SchedulePageSkeleton } from '../components/ui/skeletons/PageSkeletons'
 import type { ScheduleClass, ScheduleData, ScheduleFilterOptions } from '../types/schedule'
 import { localTodayIso } from '../utils/format'
 import './SchedulePage.css'
@@ -120,6 +122,10 @@ export function SchedulePage({
         onBack={onBack}
       />
 
+      <PullToRefresh
+        onRefresh={() => load(selectedDate, true)}
+        refreshing={refreshing}
+      >
       <div className="schedule-page__content">
         <section className="schedule-hero">
           <p className="schedule-hero__eyebrow">Lotos Studio</p>
@@ -230,9 +236,7 @@ export function SchedulePage({
         )}
 
         {loading ? (
-          <div className="schedule-page__loading">
-            <ScreenSpinner />
-          </div>
+          <SchedulePageSkeleton />
         ) : !data || filteredClasses.length === 0 ? (
           <div className="lotos-empty lotos-card schedule-page__empty">
             <p className="schedule-page__empty-title">
@@ -255,18 +259,8 @@ export function SchedulePage({
             ))}
           </div>
         )}
-
-        {!loading && (
-          <button
-            type="button"
-            className="lotos-btn lotos-btn--secondary lotos-btn--stretched"
-            disabled={refreshing}
-            onClick={() => void load(selectedDate, true)}
-          >
-            {refreshing ? 'Обновляем…' : 'Обновить расписание'}
-          </button>
-        )}
       </div>
+      </PullToRefresh>
 
       {selectedClass && data && (
         <ScheduleClassModal

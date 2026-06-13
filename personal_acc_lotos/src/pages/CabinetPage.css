@@ -7,10 +7,9 @@
   padding: 0 var(--lotos-space-md) var(--lotos-space-xl);
 }
 
-.cabinet-page__loading {
-  display: flex;
-  justify-content: center;
-  padding: 80px 0;
+.cabinet-section__rhythm,
+.cabinet-section__chart {
+  margin-bottom: var(--lotos-space-md);
 }
 
 .cabinet-page__error {

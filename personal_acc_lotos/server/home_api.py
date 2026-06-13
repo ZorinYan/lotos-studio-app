@@ -1,12 +1,14 @@
 import requests
 
 from _lib_path import ensure_lib_path
-from abonement_serializer import serialize_abonement
+from abonement_serializer import pick_primary_abonement, serialize_abonement
+from abonement_api import merge_fresh_abonements
 from home_alerts import build_home_alerts
 from miniapp_config import MiniAppConfig
 from record_serializer import is_upcoming, serialize_record
 from client_cache import (
     clear_client_data_caches,
+    fetch_abonements_fresh,
     fetch_cabinet_data,
     get_cached_home,
     set_cached_home,
@@ -34,7 +36,7 @@ def load_home(
     if not force_refresh:
         cached = get_cached_home(vk_user_id)
         if cached is not None:
-            return cached
+            return merge_fresh_abonements(cached, vk_user_id, config)
 
     phone = storage.get_phone(vk_user_id)
     if not phone:
@@ -68,8 +70,11 @@ def load_home(
             "По этому номеру нет карточки в студии.",
         ) from None
 
-    abonements = [serialize_abonement(item) for item in data.abonements]
-    primary_abonement = abonements[0] if abonements else None
+    abonements = [
+        serialize_abonement(item)
+        for item in fetch_abonements_fresh(yclients, phone)
+    ]
+    primary_abonement = pick_primary_abonement(abonements)
     next_record = None
     for raw in data.upcoming_records:
         if is_upcoming(raw):

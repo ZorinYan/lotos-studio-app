@@ -18,6 +18,7 @@ from vk_auth import guard_vk_user, vk_launch_from_header
 from booking_api import book_schedule_class, check_booking_eligibility, check_guest_booking
 from cabinet_api import load_cabinet
 from home_api import load_home
+from abonement_api import load_abonements
 from records_api import cancel_record, load_records
 from rebook_api import load_rebook_slots
 from schedule_api import load_schedule
@@ -409,6 +410,23 @@ def studio_feed(
         raise HTTPException(status_code=400, detail="Некорректный vk_user_id")
     _guard(vk_user_id, launch)
     return load_studio_feed(_cfg(), force_refresh=refresh)
+
+
+@app.get("/api/abonement")
+def abonement(vk_user_id: int, launch: dict[str, str] = Depends(vk_launch_from_header)):
+    if vk_user_id <= 0:
+        raise HTTPException(status_code=400, detail="Некорректный vk_user_id")
+    _guard(vk_user_id, launch)
+    try:
+        return load_abonements(vk_user_id, _cfg())
+    except AuthError as error:
+        status = 401 if error.code == "not_authenticated" else 400
+        if error.code in {"service_unavailable", "fetch_error"}:
+            status = 503
+        raise HTTPException(
+            status_code=status,
+            detail={"code": error.code, "message": str(error)},
+        ) from error
 
 
 @app.get("/api/home")

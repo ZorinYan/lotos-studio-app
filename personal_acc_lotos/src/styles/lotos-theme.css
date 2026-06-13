@@ -54,6 +54,8 @@ body {
   border: 1px solid var(--lotos-border);
   border-radius: var(--lotos-radius-md);
   box-shadow: var(--lotos-shadow-sm);
+  max-width: 100%;
+  min-width: 0;
   transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 

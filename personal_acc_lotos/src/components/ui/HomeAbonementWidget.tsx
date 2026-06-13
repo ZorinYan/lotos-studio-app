@@ -1,5 +1,7 @@
 import type { CabinetAbonement } from '../../types/cabinet'
 import { parseAbonementStatus, pluralizeLessons } from '../../utils/format'
+import { estimateAbonementProgress } from '../../utils/visitAnalytics'
+import { ProgressRing } from './ProgressRing'
 import './HomeAbonementWidget.css'
 
 type HomeAbonementWidgetProps = {
@@ -26,7 +28,8 @@ export function HomeAbonementWidget({ abonement, onOpenCabinet }: HomeAbonementW
 
   const status = parseAbonementStatus(abonement.status)
   const remaining = abonement.balanceRemaining
-  const previewServices = abonement.services.slice(0, 2)
+  const previewServices = abonement.services.filter((service) => service.remaining > 0).slice(0, 2)
+  const progress = estimateAbonementProgress(remaining, abonement.balanceTotal ?? null)
 
   return (
     <section
@@ -37,7 +40,7 @@ export function HomeAbonementWidget({ abonement, onOpenCabinet }: HomeAbonementW
       onKeyDown={(e) => e.key === 'Enter' && onOpenCabinet()}
     >
       <div className="home-abonement__header">
-        <div>
+        <div className="home-abonement__info">
           <p className="home-abonement__eyebrow">Ваш абонемент</p>
           <h3 className="home-abonement__title">{abonement.title}</h3>
           <span className={`home-abonement__status home-abonement__status--${status.tone}`}>
@@ -45,9 +48,16 @@ export function HomeAbonementWidget({ abonement, onOpenCabinet }: HomeAbonementW
           </span>
         </div>
         {remaining != null && (
-          <div className="home-abonement__balance" aria-label={`Осталось ${remaining} занятий`}>
-            <span className="home-abonement__balance-num">{remaining}</span>
-            <span className="home-abonement__balance-label">{pluralizeLessons(remaining)}</span>
+          <div className="home-abonement__ring-wrap" aria-label={`Осталось ${remaining} занятий`}>
+            <ProgressRing
+              progress={progress}
+              size={78}
+              strokeWidth={6}
+              label={`Осталось ${remaining} ${pluralizeLessons(remaining)}`}
+            >
+              <span className="home-abonement__ring-num">{remaining}</span>
+              <span className="home-abonement__ring-label">{pluralizeLessons(remaining)}</span>
+            </ProgressRing>
           </div>
         )}
       </div>
