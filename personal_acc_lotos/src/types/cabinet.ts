@@ -53,6 +53,7 @@ export type CabinetVisit = {
 
 export type VisitHistoryEntry = {
   dateIso: string
+  service?: string
 }
 
 export type CabinetData = {

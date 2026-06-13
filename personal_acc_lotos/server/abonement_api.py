@@ -50,6 +50,11 @@ def load_abonements(vk_user_id: int, config: MiniAppConfig) -> dict:
     }
 
 
+def _merge_alerts(cached_alerts: list[dict], fresh_abonement_alerts: list[dict]) -> list[dict]:
+    inactive = [item for item in cached_alerts if item.get("type") == "inactive"]
+    return fresh_abonement_alerts + inactive
+
+
 def merge_fresh_abonements(payload: dict, vk_user_id: int, config: MiniAppConfig) -> dict:
     """Подмешивает свежий остаток абонемента в уже собранный ответ home/cabinet."""
     try:
@@ -61,5 +66,7 @@ def merge_fresh_abonements(payload: dict, vk_user_id: int, config: MiniAppConfig
     if "abonement" in payload:
         primary = fresh["primary"]
         merged["abonement"] = primary
-        merged["alerts"] = fresh.get("alerts") or build_home_alerts(primary)
+        fresh_alerts = fresh.get("alerts") or build_home_alerts(primary)
+        cached_alerts = payload.get("alerts") or []
+        merged["alerts"] = _merge_alerts(cached_alerts, fresh_alerts)
     return merged

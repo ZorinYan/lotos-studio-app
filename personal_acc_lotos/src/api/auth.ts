@@ -10,6 +10,8 @@ export type AuthStatus = {
 export type PublicConfig = {
   studioName: string
   bookingUrl: string
+  studioPhone?: string
+  vkGroupId?: number
 }
 
 export type AuthStep = 'otp' | 'name'

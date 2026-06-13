@@ -1,11 +1,13 @@
 import type { MonthlyVisitBucket } from '../../utils/visitAnalytics'
+import type { MonthComparison } from '../../utils/practiceAnalytics'
 import './VisitActivityChart.css'
 
 type VisitActivityChartProps = {
   buckets: MonthlyVisitBucket[]
+  comparison?: MonthComparison | null
 }
 
-export function VisitActivityChart({ buckets }: VisitActivityChartProps) {
+export function VisitActivityChart({ buckets, comparison }: VisitActivityChartProps) {
   const max = Math.max(1, ...buckets.map((item) => item.count))
   const total = buckets.reduce((sum, item) => sum + item.count, 0)
 
@@ -24,6 +26,18 @@ export function VisitActivityChart({ buckets }: VisitActivityChartProps) {
         <div>
           <p className="visit-activity__eyebrow">Активность</p>
           <h4 className="visit-activity__title">Посещения за 3 месяца</h4>
+          {comparison && (
+            <p className={`visit-activity__comparison${
+              comparison.delta > 0
+                ? ' visit-activity__comparison--up'
+                : comparison.delta < 0
+                  ? ' visit-activity__comparison--down'
+                  : ''
+            }`}
+            >
+              {comparison.text}
+            </p>
+          )}
         </div>
         <span className="visit-activity__total">{total}</span>
       </div>

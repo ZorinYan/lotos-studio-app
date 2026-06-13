@@ -1,0 +1,22 @@
+.studio-contact {
+  display: grid;
+  gap: 10px;
+}
+
+.studio-contact__hint {
+  margin: 0;
+  font-size: var(--lotos-caption);
+  line-height: 1.45;
+  color: var(--lotos-text-secondary);
+}
+
+.studio-contact__grid {
+  display: grid;
+  gap: 8px;
+}
+
+.studio-contact__btn {
+  justify-content: flex-start;
+  text-align: left;
+  min-height: 44px;
+}

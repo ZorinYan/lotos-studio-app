@@ -28,7 +28,7 @@ class CabinetService:
         visit_history: list[dict] = []
         recent: list[dict] = []
         try:
-            visit_history = self.client.get_recent_visits(phone, limit=60)
+            visit_history = self.client.get_recent_visits(phone, limit=100)
             recent = visit_history[:5]
         except Exception:
             pass

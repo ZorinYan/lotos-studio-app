@@ -141,6 +141,42 @@ export async function openVkUrl(url: string): Promise<void> {
   }
 }
 
+export async function copyVkText(text: string): Promise<boolean> {
+  if (!text) return false
+
+  if (import.meta.env.VITE_SKIP_VK_BRIDGE === 'true' || !isVkEnvironment()) {
+    try {
+      await navigator.clipboard.writeText(text)
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  try {
+    await sendVkInit()
+    const result = (await bridge.send('VKWebAppCopyText', { text })) as { result?: boolean }
+    return result?.result === true
+  } catch {
+    try {
+      await navigator.clipboard.writeText(text)
+      return true
+    } catch {
+      return false
+    }
+  }
+}
+
+export function buildVkGroupMessagesUrl(groupId: number): string {
+  const id = Math.abs(groupId)
+  return `https://vk.com/im?sel=-${id}`
+}
+
+export async function openStudioContactChat(groupId: number, message: string): Promise<void> {
+  await copyVkText(message)
+  await openVkUrl(buildVkGroupMessagesUrl(groupId))
+}
+
 export async function openVkWallPost(ownerId: number, postId: number): Promise<void> {
   if (import.meta.env.VITE_SKIP_VK_BRIDGE === 'true' || !isVkEnvironment()) {
     await openVkUrl(`https://vk.com/wall${ownerId}_${postId}`)

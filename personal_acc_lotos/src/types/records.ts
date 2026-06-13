@@ -41,3 +41,23 @@ export type CancelRecordResult = {
   message: string
   record: UserRecord
 }
+
+export type RescheduleSlotsData = {
+  record: UserRecord
+  prefs: {
+    staffId: number
+    staffName: string
+    serviceTitle: string
+    serviceId?: number | null
+  }
+  classes: import('./schedule').ScheduleClass[]
+}
+
+export type RescheduleResult = {
+  success: boolean
+  partial?: boolean
+  message: string
+  warning?: string
+  oldRecord: UserRecord
+  newClass: import('./schedule').ScheduleClass
+}

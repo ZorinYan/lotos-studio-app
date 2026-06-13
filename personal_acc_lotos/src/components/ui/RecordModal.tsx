@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { cancelRecord } from '../../api/records'
+import { cancelRecord, fetchRescheduleSlots } from '../../api/records'
 import { ApiError } from '../../api/client'
-import type { CancelRecordResult, UserRecord } from '../../types/records'
+import type { CancelRecordResult, RescheduleSlotsData, UserRecord } from '../../types/records'
 import { parseAttendance } from '../../utils/format'
 import { AddToCalendarButton } from './AddToCalendarButton'
+import { RescheduleModal } from './RescheduleModal'
 import './RecordModal.css'
 
 type ModalMode = 'details' | 'confirm' | 'success'
@@ -27,13 +28,15 @@ export function RecordModal({
 }: RecordModalProps) {
   const [mode, setMode] = useState<ModalMode>('details')
   const [cancelling, setCancelling] = useState(false)
+  const [rescheduleLoading, setRescheduleLoading] = useState(false)
+  const [rescheduleData, setRescheduleData] = useState<RescheduleSlotsData | null>(null)
   const [result, setResult] = useState<CancelRecordResult | null>(null)
 
   const attendance = parseAttendance(record.attendance)
   const canCancel = record.canCancel
 
   const handleClose = () => {
-    if (cancelling) return
+    if (cancelling || rescheduleLoading) return
     if (mode === 'success') {
       onCancelled()
     }
@@ -54,6 +57,33 @@ export function RecordModal({
     }
   }
 
+  const handleReschedule = async () => {
+    setRescheduleLoading(true)
+    try {
+      const data = await fetchRescheduleSlots(vkUserId, record.id)
+      setRescheduleData(data)
+    } catch (err) {
+      onError(err instanceof ApiError ? err.message : 'Не удалось подобрать слоты для переноса')
+    } finally {
+      setRescheduleLoading(false)
+    }
+  }
+
+  if (rescheduleData) {
+    return (
+      <RescheduleModal
+        data={rescheduleData}
+        vkUserId={vkUserId}
+        onClose={() => {
+          setRescheduleData(null)
+          onClose()
+        }}
+        onRescheduled={onCancelled}
+        onError={onError}
+      />
+    )
+  }
+
   return (
     <div className="record-modal" role="dialog" aria-modal="true" aria-labelledby="record-modal-title">
       <button
@@ -61,7 +91,7 @@ export function RecordModal({
         className="record-modal__backdrop"
         aria-label="Закрыть"
         onClick={handleClose}
-        disabled={cancelling}
+        disabled={cancelling || rescheduleLoading}
       />
       <div className="record-modal__sheet lotos-card">
         <div className="record-modal__handle" aria-hidden="true" />
@@ -70,7 +100,7 @@ export function RecordModal({
           className="record-modal__close"
           onClick={handleClose}
           aria-label="Закрыть"
-          disabled={cancelling}
+          disabled={cancelling || rescheduleLoading}
         >
           ×
         </button>
@@ -200,6 +230,16 @@ export function RecordModal({
                         studioName,
                       }}
                     />
+                  )}
+                  {canCancel && (
+                    <button
+                      type="button"
+                      className="lotos-btn lotos-btn--primary lotos-btn--stretched"
+                      disabled={rescheduleLoading}
+                      onClick={() => void handleReschedule()}
+                    >
+                      {rescheduleLoading ? 'Ищем слоты…' : 'Перенести'}
+                    </button>
                   )}
                   {canCancel && (
                     <button

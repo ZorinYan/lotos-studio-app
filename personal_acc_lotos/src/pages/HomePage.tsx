@@ -6,20 +6,27 @@ import { fetchRebookSlots } from '../api/schedule'
 import { fetchStudioFeed } from '../api/studio'
 import { ApiError } from '../api/client'
 import { AppHeader } from '../components/AppHeader'
+import { FirstVisitTips } from '../components/ui/FirstVisitTips'
 import { HomeAbonementWidget } from '../components/ui/HomeAbonementWidget'
-import { HomeAlertsBanner } from '../components/ui/HomeAlertsBanner'
 import { HomeNextRecordWidget } from '../components/ui/HomeNextRecordWidget'
+import { HomeRhythmPlan } from '../components/ui/HomeRhythmPlan'
 import { HomeStudioPlace } from '../components/ui/HomeStudioPlace'
 import { HomeVkPosts } from '../components/ui/HomeVkPosts'
 import { HomeVkStories } from '../components/ui/HomeVkStories'
 import { PullToRefresh } from '../components/ui/PullToRefresh'
 import { RebookModal } from '../components/ui/RebookModal'
 import { RevealStack } from '../components/ui/RevealStack'
+import { SmartHintsBanner } from '../components/ui/SmartHintsBanner'
 import { HomePageSkeleton } from '../components/ui/skeletons/PageSkeletons'
-import type { HomeData } from '../types/home'
+import {
+  buildStudioContactMessage,
+  type StudioContactTopic,
+} from '../content/studioGuide'
+import type { HomeData, HomeHint, HomeHintAction } from '../types/home'
 import type { RebookData } from '../types/schedule'
 import type { StudioFeed } from '../types/studio'
 import { buildStudioRouteUrl } from '../utils/studioRoute'
+import { openStudioContactChat } from '../vkBridge'
 import './HomePage.css'
 
 type HomePageProps = {
@@ -27,8 +34,11 @@ type HomePageProps = {
   clientName: string | null
   studioName: string
   phoneDisplay: string | null
+  vkGroupId?: number
   onOpenCabinet: () => void
   onOpenRecords: () => void
+  onOpenSchedule: () => void
+  onOpenSettings: () => void
 }
 
 export function HomePage({
@@ -36,14 +46,18 @@ export function HomePage({
   clientName,
   studioName,
   phoneDisplay,
+  vkGroupId,
   onOpenCabinet,
   onOpenRecords,
+  onOpenSchedule,
+  onOpenSettings,
 }: HomePageProps) {
   const [homeData, setHomeData] = useState<HomeData | null>(null)
   const [studioFeed, setStudioFeed] = useState<StudioFeed | null>(null)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
   const [rebookData, setRebookData] = useState<RebookData | null>(null)
   const [rebookLoading, setRebookLoading] = useState(false)
 
@@ -64,7 +78,6 @@ export function HomePage({
         home = {
           ...home,
           abonement: abonementResult.value.primary,
-          alerts: abonementResult.value.alerts,
         }
       }
       setHomeData(home)
@@ -103,6 +116,51 @@ export function HomePage({
     }
   }
 
+  const contactContext = useMemo(
+    () => ({
+      clientName,
+      phoneDisplay,
+      abonementTitle: homeData?.abonement?.title ?? null,
+      abonementRemaining: homeData?.abonement?.balanceRemaining ?? null,
+    }),
+    [clientName, phoneDisplay, homeData?.abonement],
+  )
+
+  const openContact = useCallback(
+    async (topic: StudioContactTopic) => {
+      if (!vkGroupId) {
+        setNotice('Напишите нам в сообщения сообщества VK.')
+        return
+      }
+
+      try {
+        const message = buildStudioContactMessage(topic, contactContext)
+        await openStudioContactChat(vkGroupId, message)
+        setNotice('Текст скопирован — вставьте его в сообщение студии.')
+      } catch {
+        setNotice('Не удалось открыть диалог со студией.')
+      }
+    },
+    [contactContext, vkGroupId],
+  )
+
+  const handleHintAction = useCallback(
+    (action: HomeHintAction, _hint: HomeHint) => {
+      if (action === 'schedule') {
+        onOpenSchedule()
+        return
+      }
+      if (action === 'rebook') {
+        void handleBookAgain()
+        return
+      }
+      if (action === 'contact_renew') {
+        void openContact('renew')
+      }
+    },
+    [handleBookAgain, onOpenSchedule, openContact],
+  )
+
   const firstName = clientName?.split(' ')[0]
   const greeting = firstName
     ? `${firstName}, добро пожаловать`
@@ -132,7 +190,14 @@ export function HomePage({
             <HomePageSkeleton />
           ) : (
             <RevealStack>
-              <HomeAlertsBanner alerts={homeData?.alerts ?? []} />
+              <SmartHintsBanner
+                hints={homeData?.alerts ?? []}
+                onAction={handleHintAction}
+              />
+
+              {homeData?.isFirstVisit && (
+                <FirstVisitTips onOpenHelp={onOpenSettings} />
+              )}
 
               <HomeAbonementWidget
                 abonement={homeData?.abonement ?? null}
@@ -145,6 +210,14 @@ export function HomePage({
                   studioName={displayStudio}
                   routeUrl={routeUrl}
                   onOpenRecords={onOpenRecords}
+                />
+              )}
+
+              {homeData?.rhythmPlan && (
+                <HomeRhythmPlan
+                  plan={homeData.rhythmPlan}
+                  loading={rebookLoading}
+                  onBook={() => void handleBookAgain()}
                 />
               )}
 
@@ -202,6 +275,12 @@ export function HomePage({
       {error && (
         <Snackbar onClose={() => setError(null)} duration={5000}>
           {error}
+        </Snackbar>
+      )}
+
+      {notice && (
+        <Snackbar onClose={() => setNotice(null)} duration={5000}>
+          {notice}
         </Snackbar>
       )}
     </div>

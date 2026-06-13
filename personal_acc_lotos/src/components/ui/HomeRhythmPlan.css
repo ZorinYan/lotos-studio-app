@@ -1,0 +1,43 @@
+.home-rhythm {
+  display: grid;
+  gap: 8px;
+  padding: var(--lotos-space-md);
+  margin-bottom: var(--lotos-space-md);
+}
+
+.home-rhythm__eyebrow {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--lotos-text-secondary);
+}
+
+.home-rhythm__title {
+  margin: 0;
+  font-family: var(--lotos-font-display);
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--lotos-text);
+}
+
+.home-rhythm__detail {
+  margin: 0;
+  font-size: var(--lotos-caption);
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--lotos-success);
+}
+
+.home-rhythm__meta {
+  margin: 0;
+  font-size: var(--lotos-caption);
+  color: var(--lotos-text-secondary);
+}
+
+.home-rhythm__btn {
+  margin-top: 4px;
+  width: 100%;
+}

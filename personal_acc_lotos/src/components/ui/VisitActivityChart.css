@@ -35,11 +35,26 @@
 }
 
 .visit-activity__title {
-  margin: 0;
+  margin: 0 0 4px;
   font-family: var(--lotos-font-display);
   font-size: 20px;
   font-weight: 500;
   color: var(--lotos-text);
+}
+
+.visit-activity__comparison {
+  margin: 0;
+  font-size: var(--lotos-caption);
+  font-weight: 600;
+  color: var(--lotos-text-secondary);
+}
+
+.visit-activity__comparison--up {
+  color: var(--lotos-success);
+}
+
+.visit-activity__comparison--down {
+  color: var(--lotos-warning-text);
 }
 
 .visit-activity__total {

@@ -3,9 +3,12 @@ import requests
 from _lib_path import ensure_lib_path
 from abonement_serializer import pick_primary_abonement, serialize_abonement
 from abonement_api import merge_fresh_abonements
+from booking_api import is_first_time_client
+from cabinet_api import _serialize_visit, _serialize_visit_history
 from home_alerts import build_home_alerts
 from miniapp_config import MiniAppConfig
 from record_serializer import is_upcoming, serialize_record
+from rhythm_plan import build_inactive_hint_detail, build_rhythm_plan
 from client_cache import (
     clear_client_data_caches,
     fetch_abonements_fresh,
@@ -81,11 +84,46 @@ def load_home(
             next_record = serialize_record(raw)
             break
 
+    visit_history = [
+        entry
+        for visit in (data.visit_history or [])
+        for entry in [_serialize_visit_history(visit)]
+        if entry
+    ]
+    recent_visits = [
+        {
+            "dateIso": item.get("dateIso"),
+            "service": item.get("service"),
+        }
+        for visit in (data.recent_visits or [])
+        for item in [_serialize_visit(visit)]
+    ]
+
+    inactive_detail = build_inactive_hint_detail(visit_history)
+    rhythm_plan = None
+    try:
+        rhythm_plan = build_rhythm_plan(
+            vk_user_id,
+            phone,
+            yclients,
+            visit_history=visit_history,
+            recent_visits=recent_visits,
+            use_cache=not force_refresh,
+        )
+    except Exception:
+        rhythm_plan = None
+
     payload = {
         "studioName": config.studio_name,
         "abonement": primary_abonement,
         "nextRecord": next_record,
-        "alerts": build_home_alerts(primary_abonement),
+        "alerts": build_home_alerts(
+            primary_abonement,
+            profile=data.profile,
+            inactive_detail=inactive_detail,
+        ),
+        "rhythmPlan": rhythm_plan,
+        "isFirstVisit": is_first_time_client(data.profile),
         "rebook": rebook_preview(vk_user_id, config, force_refresh=force_refresh),
     }
     set_cached_home(vk_user_id, payload)

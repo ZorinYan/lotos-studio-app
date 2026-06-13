@@ -7,9 +7,8 @@
   padding: 0 var(--lotos-space-md) var(--lotos-space-xl);
 }
 
-.cabinet-section__rhythm,
-.cabinet-section__chart {
-  margin-bottom: var(--lotos-space-md);
+.cabinet-section--compact {
+  margin-top: calc(-1 * var(--lotos-space-sm));
 }
 
 .cabinet-page__error {

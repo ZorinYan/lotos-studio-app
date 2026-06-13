@@ -221,8 +221,11 @@ function AppContent() {
           clientName={clientName}
           studioName={config?.studioName ?? 'Lotos Studio'}
           phoneDisplay={phoneDisplay}
+          vkGroupId={config?.vkGroupId}
           onOpenCabinet={() => setScreen('cabinet')}
           onOpenRecords={() => setScreen('records')}
+          onOpenSchedule={() => setScreen('schedule')}
+          onOpenSettings={() => setScreen('settings')}
         />
       )
     }
@@ -260,6 +263,8 @@ function AppContent() {
         <SettingsPage
           vkUserId={user.id}
           phoneDisplay={phoneDisplay}
+          clientName={clientName}
+          vkGroupId={config?.vkGroupId}
           onLogout={handleLogout}
         />
       )

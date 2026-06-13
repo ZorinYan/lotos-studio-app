@@ -1,0 +1,49 @@
+.first-visit {
+  padding: var(--lotos-space-md);
+  margin-bottom: var(--lotos-space-md);
+}
+
+.first-visit__eyebrow {
+  margin: 0 0 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--lotos-text-secondary);
+}
+
+.first-visit__title {
+  margin: 0 0 12px;
+  font-family: var(--lotos-font-display);
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--lotos-text);
+}
+
+.first-visit__list {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 14px;
+  padding: 0;
+  list-style: none;
+}
+
+.first-visit__item {
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: var(--lotos-radius-sm);
+  background: var(--lotos-surface-muted);
+}
+
+.first-visit__item-title {
+  font-size: var(--lotos-caption);
+  font-weight: 700;
+  color: var(--lotos-text);
+}
+
+.first-visit__item-text {
+  font-size: var(--lotos-caption);
+  line-height: 1.45;
+  color: var(--lotos-text-secondary);
+}

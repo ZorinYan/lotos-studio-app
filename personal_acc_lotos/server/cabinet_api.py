@@ -67,7 +67,10 @@ def _serialize_visit_history(visit: dict) -> dict:
     date_iso = _visit_date_iso(visit)
     if not date_iso:
         return {}
-    return {"dateIso": date_iso}
+    return {
+        "dateIso": date_iso,
+        "service": service_titles(visit),
+    }
 
 
 def load_cabinet(

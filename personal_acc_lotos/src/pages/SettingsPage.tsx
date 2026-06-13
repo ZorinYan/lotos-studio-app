@@ -1,10 +1,13 @@
 import { ScreenSpinner, Snackbar, Switch } from '@vkontakte/vkui'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { fetchAbonements } from '../api/abonement'
 import { fetchSettings, updateSettings } from '../api/settings'
 import { fetchScheduleFilters } from '../api/schedule'
 import { ApiError } from '../api/client'
 import { AppHeader } from '../components/AppHeader'
 import { ConfirmModal } from '../components/ui/ConfirmModal'
+import { FaqSection } from '../components/ui/FaqSection'
+import { StudioContactSection } from '../components/ui/StudioContactSection'
 import { useLotosTheme } from '../hooks/useLotosTheme'
 import {
   isVkEnvironment,
@@ -16,10 +19,18 @@ import './SettingsPage.css'
 type SettingsPageProps = {
   vkUserId: number
   phoneDisplay: string | null
+  clientName: string | null
+  vkGroupId?: number
   onLogout: () => void | Promise<void>
 }
 
-export function SettingsPage({ vkUserId, phoneDisplay, onLogout }: SettingsPageProps) {
+export function SettingsPage({
+  vkUserId,
+  phoneDisplay,
+  clientName,
+  vkGroupId,
+  onLogout,
+}: SettingsPageProps) {
   const { isDark, setColorScheme } = useLotosTheme()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -30,14 +41,18 @@ export function SettingsPage({ vkUserId, phoneDisplay, onLogout }: SettingsPageP
   const [trainers, setTrainers] = useState<{ id: number; name: string }[]>([])
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false)
   const [logoutLoading, setLogoutLoading] = useState(false)
+  const [notice, setNotice] = useState<string | null>(null)
+  const [abonementTitle, setAbonementTitle] = useState<string | null>(null)
+  const [abonementRemaining, setAbonementRemaining] = useState<number | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      const [settings, filters] = await Promise.all([
+      const [settings, filters, abonements] = await Promise.all([
         fetchSettings(vkUserId),
         fetchScheduleFilters(),
+        fetchAbonements(vkUserId).catch(() => null),
       ])
       setFavoriteTrainerId(settings.favoriteTrainer?.id ?? null)
       setNotificationsEnabled(
@@ -47,6 +62,10 @@ export function SettingsPage({ vkUserId, phoneDisplay, onLogout }: SettingsPageP
       setNotificationsAvailable(
         isVkEnvironment() && import.meta.env.VITE_SKIP_VK_BRIDGE !== 'true',
       )
+      if (abonements?.primary) {
+        setAbonementTitle(abonements.primary.title)
+        setAbonementRemaining(abonements.primary.balanceRemaining ?? null)
+      }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Не удалось загрузить настройки')
     } finally {
@@ -112,6 +131,16 @@ export function SettingsPage({ vkUserId, phoneDisplay, onLogout }: SettingsPageP
       setLogoutConfirmOpen(false)
     }
   }
+
+  const contactContext = useMemo(
+    () => ({
+      clientName,
+      phoneDisplay,
+      abonementTitle,
+      abonementRemaining,
+    }),
+    [abonementRemaining, abonementTitle, clientName, phoneDisplay],
+  )
 
   return (
     <div className="settings-page">
@@ -199,6 +228,18 @@ export function SettingsPage({ vkUserId, phoneDisplay, onLogout }: SettingsPageP
               </div>
             </section>
 
+            <section className="settings-section lotos-card">
+              <FaqSection compact />
+            </section>
+
+            <section className="settings-section lotos-card">
+              <StudioContactSection
+                vkGroupId={vkGroupId}
+                context={contactContext}
+                onNotice={setNotice}
+              />
+            </section>
+
             <div className="settings-logout">
               <button
                 type="button"
@@ -227,6 +268,12 @@ export function SettingsPage({ vkUserId, phoneDisplay, onLogout }: SettingsPageP
       {error && (
         <Snackbar onClose={() => setError(null)} duration={5000}>
           {error}
+        </Snackbar>
+      )}
+
+      {notice && (
+        <Snackbar onClose={() => setNotice(null)} duration={5000}>
+          {notice}
         </Snackbar>
       )}
     </div>

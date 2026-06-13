@@ -9,19 +9,14 @@ import { AbonementModal } from '../components/ui/AbonementModal'
 import { PullToRefresh } from '../components/ui/PullToRefresh'
 import { RecordCard } from '../components/ui/RecordCard'
 import { RecordModal } from '../components/ui/RecordModal'
+import { PracticeSection } from '../components/ui/PracticeSection'
 import { StatTile } from '../components/ui/StatTile'
-import { VisitActivityChart } from '../components/ui/VisitActivityChart'
-import { VisitRhythmCard } from '../components/ui/VisitRhythmCard'
 import { VisitRow } from '../components/ui/VisitRow'
 import { CabinetPageSkeleton } from '../components/ui/skeletons/PageSkeletons'
 import type { CabinetAbonement, CabinetData } from '../types/cabinet'
 import type { UserRecord } from '../types/records'
 import { formatMoney } from '../utils/format'
-import {
-  buildMonthlyVisitBuckets,
-  collectVisitDateIsos,
-  computeVisitRhythm,
-} from '../utils/visitAnalytics'
+import { buildPracticeDashboard } from '../utils/practiceAnalytics'
 import './CabinetPage.css'
 
 type CabinetPageProps = {
@@ -106,13 +101,12 @@ export function CabinetPage({ vkUserId, studioName, onBack, onOpenRecords }: Cab
 
   const { profile, abonements, upcomingRecords, recentVisits, abonementUsageVisits, visitHistory } = data
   const firstName = profile.name.split(' ')[0]
-  const visitDateIsos = collectVisitDateIsos(
+  const practice = buildPracticeDashboard(
+    profile,
     visitHistory ?? [],
     recentVisits,
     abonementUsageVisits,
   )
-  const monthlyBuckets = buildMonthlyVisitBuckets(visitDateIsos, 3)
-  const visitRhythm = computeVisitRhythm(visitDateIsos)
 
   return (
     <div className="cabinet-page">
@@ -137,32 +131,20 @@ export function CabinetPage({ vkUserId, studioName, onBack, onOpenRecords }: Cab
           </p>
         </section>
 
-        <section className="cabinet-section">
-          <h3 className="lotos-section-title">Ваша статистика</h3>
-          {visitRhythm && (
-            <div className="cabinet-section__rhythm">
-              <VisitRhythmCard rhythm={visitRhythm} />
+        <PracticeSection data={practice} />
+
+        {(profile.spent > 0 || profile.discount > 0) && (
+          <section className="cabinet-section cabinet-section--compact">
+            <div className="cabinet-stats">
+              {profile.spent > 0 && (
+                <StatTile label="Оплачено всего" value={formatMoney(profile.spent)} />
+              )}
+              {profile.discount > 0 && (
+                <StatTile label="Персональная скидка" value={`${profile.discount}%`} />
+              )}
             </div>
-          )}
-          <div className="cabinet-section__chart">
-            <VisitActivityChart buckets={monthlyBuckets} />
-          </div>
-          <div className="cabinet-stats">
-            <StatTile label="Визитов в студии" value={String(profile.visits)} accent />
-            {profile.spent > 0 && (
-              <StatTile label="Оплачено всего" value={formatMoney(profile.spent)} />
-            )}
-            {profile.discount > 0 && (
-              <StatTile label="Персональная скидка" value={`${profile.discount}%`} />
-            )}
-            {profile.firstVisitDate && (
-              <StatTile label="Первый визит" value={profile.firstVisitDate} />
-            )}
-            {profile.lastVisitDate && (
-              <StatTile label="Последний визит" value={profile.lastVisitDate} />
-            )}
-          </div>
-        </section>
+          </section>
+        )}
 
         <section className="cabinet-section">
           <h3 className="lotos-section-title">Абонементы</h3>

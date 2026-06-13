@@ -20,6 +20,7 @@ from cabinet_api import load_cabinet
 from home_api import load_home
 from abonement_api import load_abonements
 from records_api import cancel_record, load_records
+from reschedule_api import load_reschedule_slots, reschedule_record
 from rebook_api import load_rebook_slots
 from schedule_api import load_schedule
 from schedule_filters_api import load_schedule_filters
@@ -96,6 +97,12 @@ class CancelRecordRequest(VkUserRequest):
     record_id: int = Field(gt=0)
 
 
+class RescheduleRecordRequest(VkUserRequest):
+    record_id: int = Field(gt=0)
+    activity_id: int = Field(gt=0)
+    activity_date: str | None = None
+
+
 class SettingsUpdateRequest(VkUserRequest):
     favorite_staff_id: int | None = None
     favorite_staff_name: str | None = Field(default=None, max_length=120)
@@ -127,12 +134,16 @@ def health() -> dict[str, str]:
 
 
 @app.get("/api/config/public")
-def public_config() -> dict[str, str]:
+def public_config() -> dict[str, str | int]:
     cfg = _cfg()
-    return {
+    payload: dict[str, str | int] = {
         "studioName": cfg.studio_name,
         "bookingUrl": cfg.yclients_booking_url,
+        "studioPhone": cfg.studio_phone,
     }
+    if cfg.vk_group_id:
+        payload["vkGroupId"] = cfg.vk_group_id
+    return payload
 
 
 @app.get("/api/auth/status")
@@ -330,6 +341,54 @@ def records_cancel(body: CancelRecordRequest, launch: dict[str, str] = Depends(v
             status = 401
         elif error.code in {"service_unavailable", "fetch_error"}:
             status = 503
+        raise HTTPException(
+            status_code=status,
+            detail={"code": error.code, "message": str(error)},
+        ) from error
+
+
+@app.get("/api/records/reschedule-slots")
+def records_reschedule_slots(
+    vk_user_id: int,
+    record_id: int,
+    launch: dict[str, str] = Depends(vk_launch_from_header),
+):
+    if vk_user_id <= 0:
+        raise HTTPException(status_code=400, detail="Некорректный vk_user_id")
+    if record_id <= 0:
+        raise HTTPException(status_code=400, detail="Некорректный record_id")
+    _guard(vk_user_id, launch)
+    try:
+        return load_reschedule_slots(vk_user_id, record_id, _cfg())
+    except AuthError as error:
+        status = 400
+        if error.code == "not_authenticated":
+            status = 401
+        elif error.code in {"service_unavailable", "fetch_error"}:
+            status = 503
+        raise HTTPException(
+            status_code=status,
+            detail={"code": error.code, "message": str(error)},
+        ) from error
+
+
+@app.post("/api/records/reschedule")
+def records_reschedule(body: RescheduleRecordRequest, launch: dict[str, str] = Depends(vk_launch_from_header)):
+    _guard(body.vk_user_id, launch)
+    try:
+        return reschedule_record(
+            body.vk_user_id,
+            body.record_id,
+            body.activity_id,
+            body.activity_date,
+            _cfg(),
+        )
+    except AuthError as error:
+        status = 400
+        if error.code == "not_authenticated":
+            status = 401
+        elif error.code in {"service_unavailable", "fetch_error", "booking_failed"}:
+            status = 503 if error.code in {"service_unavailable", "fetch_error"} else 400
         raise HTTPException(
             status_code=status,
             detail={"code": error.code, "message": str(error)},
