@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { fetchAuthStatus, fetchPublicConfig, logout, type PublicConfig } from './api/auth'
 import { fetchSettings } from './api/settings'
 import { ApiError } from './api/client'
+import { registerSessionExpiredHandler } from './api/session'
 import { AppTabShell } from './components/AppTabShell'
 import { WelcomeBanner } from './components/WelcomeBanner'
 import type { AppTab } from './components/BottomNav'
@@ -168,6 +169,34 @@ function AppContent() {
     setWelcomeOpen(false)
     setScreen('auth')
   }, [vkUser])
+
+  const forceLogout = useCallback(
+    async (message?: string) => {
+      if (!vkUser) return
+      try {
+        await logout(vkUser.id)
+      } catch {
+        // локально сбрасываем сессию даже если API недоступен
+      }
+      setPhoneDisplay(null)
+      setClientName(null)
+      setFavoriteTrainerId(null)
+      setAuthenticated(false)
+      setGuestSchedule(false)
+      setWelcomeOpen(false)
+      setBootError(
+        message ?? 'Сессия завершена. Войдите снова по номеру телефона.',
+      )
+      setScreen('auth')
+    },
+    [vkUser],
+  )
+
+  useEffect(() => {
+    return registerSessionExpiredHandler((message) => {
+      void forceLogout(message)
+    })
+  }, [forceLogout])
 
   const handleTabNavigate = useCallback((tab: AppTab) => {
     setGuestSchedule(false)

@@ -1,5 +1,11 @@
+.settings-page {
+  min-height: 100vh;
+  background: var(--lotos-bg);
+}
+
 .settings-page__content {
   padding: var(--lotos-space-md);
+  padding-bottom: var(--lotos-space-xl);
 }
 
 .settings-page__loading {

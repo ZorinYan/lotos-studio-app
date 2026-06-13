@@ -51,6 +51,7 @@ export function ScheduleClassModal({
   const [result, setResult] = useState<BookScheduleResult | null>(null)
   const [phoneInput, setPhoneInput] = useState('')
   const [nameInput, setNameInput] = useState('')
+  const [surnameInput, setSurnameInput] = useState('')
   const [guestError, setGuestError] = useState<string | null>(null)
   const [eligibility, setEligibility] = useState<BookingEligibility | null>(null)
   const [checking, setChecking] = useState(false)
@@ -72,12 +73,21 @@ export function ScheduleClassModal({
     onClose()
   }
 
+  const guestFormComplete =
+    phoneInput.trim().length > 0
+    && nameInput.trim().length > 0
+    && surnameInput.trim().length > 0
+
   const handleBook = async () => {
     setBooking(true)
     try {
       const guest =
-        !authenticated && phoneInput.trim() && nameInput.trim()
-          ? { phone: phoneInput.trim(), name: nameInput.trim() }
+        !authenticated && guestFormComplete
+          ? {
+              phone: phoneInput.trim(),
+              name: nameInput.trim(),
+              surname: surnameInput.trim(),
+            }
           : undefined
       const response = await bookScheduleClass(
         vkUserId,
@@ -115,6 +125,10 @@ export function ScheduleClassModal({
   }
 
   const handleGuestNext = async () => {
+    if (!guestFormComplete) {
+      setGuestError('Заполните телефон, имя и фамилию.')
+      return
+    }
     setChecking(true)
     setGuestError(null)
     try {
@@ -238,9 +252,9 @@ export function ScheduleClassModal({
                   Без входа можно записаться только на первое пробное занятие.
                   {showTrialPrice
                     ? ' Если вы ещё не были в студии, запись оформится по пробной цене.'
-                    : ' Укажите телефон и имя.'}
+                    : ' Укажите телефон, имя и фамилию.'}
                 </p>
-                <FormItem top="Телефон" htmlFor="book-phone">
+                <FormItem top="Телефон" htmlFor="book-phone" status="default" bottom="Обязательное поле">
                   <Input
                     id="book-phone"
                     type="tel"
@@ -249,15 +263,27 @@ export function ScheduleClassModal({
                     value={phoneInput}
                     onChange={(event) => setPhoneInput(event.target.value)}
                     disabled={booking}
+                    required
                   />
                 </FormItem>
-                <FormItem top="Имя" htmlFor="book-name">
+                <FormItem top="Имя" htmlFor="book-name" status="default" bottom="Обязательное поле">
                   <Input
                     id="book-name"
-                    placeholder="Как к вам обращаться"
+                    placeholder="Иван"
                     value={nameInput}
                     onChange={(event) => setNameInput(event.target.value)}
                     disabled={booking || checking}
+                    required
+                  />
+                </FormItem>
+                <FormItem top="Фамилия" htmlFor="book-surname" status="default" bottom="Обязательное поле">
+                  <Input
+                    id="book-surname"
+                    placeholder="Иванов"
+                    value={surnameInput}
+                    onChange={(event) => setSurnameInput(event.target.value)}
+                    disabled={booking || checking}
+                    required
                   />
                 </FormItem>
                 {guestError && (
@@ -294,7 +320,7 @@ export function ScheduleClassModal({
                   <button
                     type="button"
                     className="lotos-btn lotos-btn--primary"
-                    disabled={booking || checking || !phoneInput.trim() || !nameInput.trim()}
+                    disabled={booking || checking || !guestFormComplete}
                     onClick={() => void handleGuestNext()}
                   >
                     {checking ? 'Проверяем…' : 'Далее'}

@@ -126,7 +126,7 @@ function visitsPerDay(visits: PracticeVisit[]): Map<string, number> {
 }
 
 function formatTenureLine(profile: CabinetProfile, visits: PracticeVisit[]): string | null {
-  const total = profile.visits > 0 ? profile.visits : visits.length
+  const total = Math.max(profile.visits, visits.length)
   if (total === 0) return null
 
   let earliest: Date | null = null

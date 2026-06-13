@@ -18,15 +18,12 @@ import { RebookModal } from '../components/ui/RebookModal'
 import { RevealStack } from '../components/ui/RevealStack'
 import { SmartHintsBanner } from '../components/ui/SmartHintsBanner'
 import { HomePageSkeleton } from '../components/ui/skeletons/PageSkeletons'
-import {
-  buildStudioContactMessage,
-  type StudioContactTopic,
-} from '../content/studioGuide'
+import type { StudioContactTopic } from '../content/studioGuide'
+import { StudioContactSheet } from '../components/ui/StudioContactSheet'
 import type { HomeData, HomeHint, HomeHintAction } from '../types/home'
 import type { RebookData } from '../types/schedule'
 import type { StudioFeed } from '../types/studio'
 import { buildStudioRouteUrl } from '../utils/studioRoute'
-import { openStudioContactChat } from '../vkBridge'
 import './HomePage.css'
 
 type HomePageProps = {
@@ -60,6 +57,7 @@ export function HomePage({
   const [notice, setNotice] = useState<string | null>(null)
   const [rebookData, setRebookData] = useState<RebookData | null>(null)
   const [rebookLoading, setRebookLoading] = useState(false)
+  const [contactTopic, setContactTopic] = useState<StudioContactTopic | null>(null)
 
   const load = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true)
@@ -126,24 +124,6 @@ export function HomePage({
     [clientName, phoneDisplay, homeData?.abonement],
   )
 
-  const openContact = useCallback(
-    async (topic: StudioContactTopic) => {
-      if (!vkGroupId) {
-        setNotice('Напишите нам в сообщения сообщества VK.')
-        return
-      }
-
-      try {
-        const message = buildStudioContactMessage(topic, contactContext)
-        await openStudioContactChat(vkGroupId, message)
-        setNotice('Текст скопирован — вставьте его в сообщение студии.')
-      } catch {
-        setNotice('Не удалось открыть диалог со студией.')
-      }
-    },
-    [contactContext, vkGroupId],
-  )
-
   const handleHintAction = useCallback(
     (action: HomeHintAction, _hint: HomeHint) => {
       if (action === 'schedule') {
@@ -155,10 +135,14 @@ export function HomePage({
         return
       }
       if (action === 'contact_renew') {
-        void openContact('renew')
+        if (!vkGroupId) {
+          setNotice('Напишите нам в сообщения сообщества VK.')
+          return
+        }
+        setContactTopic('renew')
       }
     },
-    [handleBookAgain, onOpenSchedule, openContact],
+    [handleBookAgain, onOpenSchedule, vkGroupId],
   )
 
   const firstName = clientName?.split(' ')[0]
@@ -221,7 +205,7 @@ export function HomePage({
                 />
               )}
 
-              {homeData?.rebook?.available && homeData.rebook.prefs && (
+              {homeData?.rebook?.available && homeData.rebook.prefs && !homeData?.rhythmPlan && (
                 <section className="home-rebook lotos-card">
                   <div className="home-rebook__body">
                     <p className="home-rebook__eyebrow">Быстрая запись</p>
@@ -269,6 +253,16 @@ export function HomePage({
           onClose={() => setRebookData(null)}
           onBooked={() => void load(true)}
           onError={setError}
+        />
+      )}
+
+      {contactTopic && vkGroupId && (
+        <StudioContactSheet
+          topic={contactTopic}
+          context={contactContext}
+          vkGroupId={vkGroupId}
+          onClose={() => setContactTopic(null)}
+          onNotice={setNotice}
         />
       )}
 

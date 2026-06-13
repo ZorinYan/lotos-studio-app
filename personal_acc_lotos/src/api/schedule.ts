@@ -52,7 +52,7 @@ export function bookScheduleClass(
   vkUserId: number,
   activityId: number,
   activityDate?: string,
-  guest?: { phone: string; name: string },
+  guest?: { phone: string; name: string; surname: string },
 ) {
   return apiFetch<BookScheduleResult>('/api/schedule/book', {
     method: 'POST',
@@ -62,6 +62,7 @@ export function bookScheduleClass(
       activity_date: activityDate ?? null,
       phone: guest?.phone ?? null,
       name: guest?.name ?? null,
+      surname: guest?.surname ?? null,
     }),
   })
 }

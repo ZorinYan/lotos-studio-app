@@ -48,16 +48,45 @@ def is_first_time_client(profile: dict | None) -> bool:
     return True
 
 
-def _trial_salon_service_id(activity: dict) -> int | None:
+def _client_id(profile: dict | None) -> int | None:
+    if not profile:
+        return None
+    try:
+        return int(profile.get("id"))
+    except (TypeError, ValueError):
+        return None
+
+
+def is_trial_booking_eligible(yclients: YClientsClient, profile: dict | None) -> bool:
+    """Пробная запись — один раз, до первой записи/визита в YClients."""
+    if not profile:
+        return True
+    if not is_first_time_client(profile):
+        return False
+
+    client_id = _client_id(profile)
+    if client_id is None:
+        return True
+
+    try:
+        return yclients.is_trial_visit_available(client_id)
+    except (YClientsError, YClientsPermissionError, requests.RequestException):
+        try:
+            return not yclients.client_has_active_records(client_id)
+        except (YClientsError, YClientsPermissionError, requests.RequestException):
+            return is_first_time_client(profile)
+
+
+def _has_trial_price(activity: dict) -> bool:
     service = activity.get("service") or {}
     trial = service.get("trial_settings") or {}
     if not isinstance(trial, dict):
-        return None
-    raw = trial.get("salon_service_id")
+        return False
+    raw = trial.get("price")
     try:
-        return int(raw) if raw is not None else None
+        return raw is not None and int(raw) > 0
     except (TypeError, ValueError):
-        return None
+        return False
 
 
 def _split_name(raw_name: str) -> tuple[str, str]:
@@ -92,15 +121,19 @@ def _resolve_fullname(vk_user_id: int, phone: str, yclients) -> tuple[str, str]:
 def _resolve_guest_identity(
     phone: str,
     raw_name: str,
+    raw_surname: str,
     yclients,
 ) -> tuple[str, str, bool, dict | None]:
     normalized = normalize_phone(phone)
     if not normalized:
         raise AuthError("invalid_phone", "Не удалось распознать номер телефона.")
 
-    name = raw_name.strip()
-    if not name:
+    fullname = raw_name.strip()
+    surname = raw_surname.strip()
+    if not fullname:
         raise AuthError("invalid_name", "Укажите имя для записи.")
+    if not surname:
+        raise AuthError("invalid_surname", "Укажите фамилию для записи.")
 
     try:
         profile = yclients.find_client_by_phone(normalized)
@@ -117,17 +150,14 @@ def _resolve_guest_identity(
             "Не удалось связаться с YClients. Проверьте интернет и попробуйте снова.",
         ) from None
 
-    is_trial = is_first_time_client(profile)
+    is_trial = is_trial_booking_eligible(yclients, profile) if profile else True
     if profile and not is_trial:
         raise AuthError(
             "existing_client_login_required",
             "Вы уже были в студии. Войдите по номеру телефона — запись доступна только после авторизации.",
         )
 
-    fullname, surname = _split_name(name)
-    if not fullname:
-        raise AuthError("invalid_name", "Укажите имя для записи.")
-    return fullname, surname, True, profile
+    return fullname, surname, is_trial, profile
 
 
 def _find_activity(yclients, activity_id: int, activity_date: str | None) -> dict | None:
@@ -157,10 +187,10 @@ def book_schedule_class(
     *,
     guest_phone: str | None = None,
     guest_name: str | None = None,
+    guest_surname: str | None = None,
 ) -> dict:
     yclients = create_yclients_client(config)
     is_trial = False
-    salon_service_id: int | None = None
 
     if guest_phone is not None:
         normalized_phone = normalize_phone(guest_phone)
@@ -169,10 +199,11 @@ def book_schedule_class(
         fullname, surname, is_trial, profile = _resolve_guest_identity(
             guest_phone,
             guest_name or "",
+            guest_surname or "",
             yclients,
         )
         phone = normalized_phone
-        display_name = guest_name.strip() if guest_name else fullname
+        display_name = f"{fullname} {surname}".strip()
         storage.update_user_entry(
             vk_user_id,
             phone=phone,
@@ -187,7 +218,7 @@ def book_schedule_class(
             profile = yclients.find_client_by_phone(phone)
         except (YClientsError, YClientsPermissionError, requests.RequestException):
             profile = None
-        is_trial = is_first_time_client(profile)
+        is_trial = is_trial_booking_eligible(yclients, profile) if profile else False
 
     try:
         activity = _find_activity(yclients, activity_id, activity_date)
@@ -211,16 +242,15 @@ def book_schedule_class(
         raise AuthError("activity_full", "На это занятие больше нет свободных мест.")
 
     if is_trial:
-        salon_service_id = _trial_salon_service_id(activity)
-        if requires_abonement(activity) and salon_service_id is None:
+        if requires_abonement(activity) and not _has_trial_price(activity):
             raise AuthError(
                 "trial_unavailable",
                 "Пробная запись на это занятие недоступна. Обратитесь к администратору студии.",
             )
-        comment = "Пробное занятие · мини-приложение Lotos"
+        comment = "Пробное занятие · мини-приложение Мой Lotos VK"
     else:
         assert_abonement_booking_allowed(yclients, phone, activity)
-        comment = "Запись через мини-приложение Lotos"
+        comment = "Запись через мини-приложение Мой Lotos VK"
 
     try:
         yclients.book_activity(
@@ -229,7 +259,8 @@ def book_schedule_class(
             fullname,
             surname,
             comment=comment,
-            salon_service_id=salon_service_id,
+            is_trial=is_trial,
+            activity=activity if is_trial else None,
         )
     except YClientsError as error:
         raise AuthError("booking_failed", str(error)) from error
@@ -282,7 +313,7 @@ def check_guest_booking(phone: str, config: MiniAppConfig) -> dict:
             "Не удалось связаться с YClients. Проверьте интернет и попробуйте снова.",
         ) from None
 
-    is_trial = is_first_time_client(profile)
+    is_trial = is_trial_booking_eligible(yclients, profile) if profile else True
     if profile and not is_trial:
         return {
             "allowed": False,
@@ -318,7 +349,7 @@ def check_booking_eligibility(
     except (YClientsError, YClientsPermissionError, requests.RequestException):
         profile = None
 
-    is_trial = is_first_time_client(profile)
+    is_trial = is_trial_booking_eligible(yclients, profile) if profile else False
 
     try:
         activity = _find_activity(yclients, activity_id, activity_date)
@@ -344,7 +375,7 @@ def check_booking_eligibility(
         if needs_abonement
         else True
     )
-    trial_available = _trial_salon_service_id(activity) is not None
+    trial_available = _has_trial_price(activity)
 
     can_book = True
     reason = None

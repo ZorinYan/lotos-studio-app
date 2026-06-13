@@ -249,8 +249,8 @@ class YClientsClient:
         self,
         client_id: int,
         *,
-        days_back: int = 180,
-        count: int = 100,
+        days_back: int = 365,
+        count: int = 200,
     ) -> list[dict]:
         start = (date.today() - timedelta(days=days_back)).isoformat()
         payload = self._request(
@@ -275,6 +275,25 @@ class YClientsClient:
 
         records.sort(key=lambda item: item[0])
         return [record for _, record in records]
+
+    def client_has_active_records(self, client_id: int) -> bool:
+        for record in self.get_client_records(client_id, days_back=730, count=30):
+            if record.get("deleted"):
+                continue
+            if record.get("attendance") == -1:
+                continue
+            return True
+        return False
+
+    def is_trial_visit_available(self, client_id: int) -> bool:
+        payload = self._request(
+            "GET",
+            f"/company/{self.config.yclients_company_id}/client/{client_id}/trial_visit_availability",
+        )
+        if not payload.get("success"):
+            return False
+        data = payload.get("data") or {}
+        return bool(data.get("is_available"))
 
     def delete_record(self, record_id: int) -> None:
         response = self._send_request(
@@ -489,6 +508,33 @@ class YClientsClient:
         activities = self.get_schedule_activities(days)
         return [item for item in activities if self.activity_has_free_spots(item)]
 
+    @staticmethod
+    def _activity_booking_datetime(activity: dict) -> str:
+        raw = activity.get("date")
+        if raw is None:
+            return ""
+        text = str(raw)
+        if "T" in text:
+            return text.replace("T", " ")[:19]
+        return text[:19]
+
+    @staticmethod
+    def _trial_activity_appointment(activity: dict, activity_id: int) -> dict:
+        service = activity.get("service") or {}
+        staff = activity.get("staff") or {}
+        return {
+            "id": 0,
+            "activityId": activity_id,
+            "activityType": 2,
+            "staff_id": staff.get("id"),
+            "services": [service.get("id")],
+            "clients_count": 1,
+            "datetime": YClientsClient._activity_booking_datetime(activity),
+            "events": [],
+            "chargeStatus": "",
+            "is_trial_service": True,
+        }
+
     def book_activity(
         self,
         activity_id: int,
@@ -497,7 +543,8 @@ class YClientsClient:
         surname: str = "",
         *,
         comment: str = "Запись через VK бот",
-        salon_service_id: int | None = None,
+        is_trial: bool = False,
+        activity: dict | None = None,
     ) -> dict:
         payload: dict[str, object] = {
             "phone": phone,
@@ -505,8 +552,14 @@ class YClientsClient:
             "surname": surname,
             "comment": comment,
         }
-        if salon_service_id:
-            payload["salon_service_id"] = salon_service_id
+        if is_trial:
+            if not activity:
+                raise YClientsError(
+                    "Для пробной записи нужны данные занятия из расписания."
+                )
+            payload["appointments"] = [
+                self._trial_activity_appointment(activity, activity_id)
+            ]
 
         response = self._send_request(
             "POST",

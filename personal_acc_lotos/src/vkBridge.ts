@@ -172,11 +172,6 @@ export function buildVkGroupMessagesUrl(groupId: number): string {
   return `https://vk.com/im?sel=-${id}`
 }
 
-export async function openStudioContactChat(groupId: number, message: string): Promise<void> {
-  await copyVkText(message)
-  await openVkUrl(buildVkGroupMessagesUrl(groupId))
-}
-
 export async function openVkWallPost(ownerId: number, postId: number): Promise<void> {
   if (import.meta.env.VITE_SKIP_VK_BRIDGE === 'true' || !isVkEnvironment()) {
     await openVkUrl(`https://vk.com/wall${ownerId}_${postId}`)

@@ -28,6 +28,7 @@ from utils.dates import format_date_short  # noqa: E402
 from yclients.client import YClientsClient  # noqa: E402
 
 from auth_service import AuthError  # noqa: E402
+from visit_stats import VISIT_RECORDS_DAYS_BACK, VISIT_RECORDS_LIMIT, build_visit_stats
 
 
 def _serialize_abonements(raw_items: list[dict]) -> list[dict]:
@@ -120,6 +121,18 @@ def load_cabinet(
 
     profile = data.profile
     client_name = _client_name(profile)
+    client_id = profile["id"]
+
+    try:
+        raw_records = yclients.get_client_records(
+            client_id,
+            days_back=VISIT_RECORDS_DAYS_BACK,
+            count=VISIT_RECORDS_LIMIT,
+        )
+    except Exception:
+        raw_records = []
+
+    visit_stats = build_visit_stats(raw_records)
 
     usage_visits = [
         serialize_usage_visit(visit)
@@ -136,7 +149,7 @@ def load_cabinet(
             "name": client_name,
             "phone": phone,
             "phoneDisplay": format_phone_display(phone),
-            "visits": profile.get("visits") or 0,
+            "visits": visit_stats["totalVisits"],
             "spent": profile.get("spent") or 0,
             "discount": profile.get("discount") or 0,
             "firstVisitDate": format_date_short(profile.get("first_visit_date") or "")
@@ -149,13 +162,8 @@ def load_cabinet(
         "abonements": _serialize_abonements(fresh_abonements),
         "abonementUsageVisits": usage_visits,
         "upcomingRecords": [serialize_record(record) for record in data.upcoming_records],
-        "recentVisits": [_serialize_visit(visit) for visit in data.recent_visits],
-        "visitHistory": [
-            entry
-            for visit in data.visit_history
-            for entry in [_serialize_visit_history(visit)]
-            if entry
-        ],
+        "recentVisits": visit_stats["recentVisits"],
+        "visitHistory": visit_stats["visitHistory"],
     }
     set_cached_cabinet(vk_user_id, payload)
     return payload

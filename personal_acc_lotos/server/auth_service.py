@@ -57,14 +57,18 @@ def get_auth_status(vk_user_id: int, config: MiniAppConfig | None = None) -> Aut
         return AuthStatus(authenticated=False)
 
     client_name = entry.get("client_name")
-    if not client_name and config:
+    if config:
         try:
             profile = create_yclients_client(config).find_client_by_phone(phone)
-            if profile:
-                client_name = _client_name(profile)
-                storage.update_user_entry(vk_user_id, client_name=client_name)
         except (YClientsError, YClientsPermissionError, requests.RequestException):
-            pass
+            profile = None
+        else:
+            if not profile:
+                logout(vk_user_id)
+                return AuthStatus(authenticated=False)
+            client_name = client_name or _client_name(profile)
+            if client_name != entry.get("client_name"):
+                storage.update_user_entry(vk_user_id, client_name=client_name)
 
     return AuthStatus(
         authenticated=True,

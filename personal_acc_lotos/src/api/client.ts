@@ -1,4 +1,5 @@
 import { vkLaunchHeaders } from '../vkLaunch'
+import { isSessionExpiredError, notifySessionExpired } from './session'
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? ''
 const API_TIMEOUT_MS = 25_000
@@ -84,7 +85,11 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
   }
 
   if (!response.ok) {
-    throw await parseError(response)
+    const error = await parseError(response)
+    if (response.status === 401 || isSessionExpiredError(error)) {
+      notifySessionExpired(error.message, path)
+    }
+    throw error
   }
 
   const contentType = response.headers.get('content-type') ?? ''

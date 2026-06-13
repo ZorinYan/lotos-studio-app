@@ -87,6 +87,7 @@ class BookScheduleRequest(VkUserRequest):
     activity_date: str | None = None
     phone: str | None = None
     name: str | None = None
+    surname: str | None = None
 
 
 class GuestCheckRequest(BaseModel):
@@ -114,9 +115,11 @@ def _cfg() -> MiniAppConfig:
     return config
 
 
-def _handle_auth_error(error: AuthError) -> HTTPException:
+def _handle_auth_error(error: AuthError, *, protected: bool = False) -> HTTPException:
     status = 400
-    if error.code in {"service_unavailable", "fetch_error"}:
+    if protected and error.code in {"not_authenticated", "client_not_found"}:
+        status = 401
+    elif error.code in {"service_unavailable", "fetch_error"}:
         status = 503
     return HTTPException(
         status_code=status,
@@ -278,15 +281,7 @@ def schedule_rebook(vk_user_id: int, launch: dict[str, str] = Depends(vk_launch_
     try:
         return load_rebook_slots(vk_user_id, _cfg())
     except AuthError as error:
-        status = 400
-        if error.code == "not_authenticated":
-            status = 401
-        elif error.code in {"service_unavailable", "fetch_error"}:
-            status = 503
-        raise HTTPException(
-            status_code=status,
-            detail={"code": error.code, "message": str(error)},
-        ) from error
+        raise _handle_auth_error(error, protected=True) from error
 
 
 @app.get("/api/schedule")
@@ -321,13 +316,7 @@ def records(
     try:
         return load_records(vk_user_id, filter, _cfg(), force_refresh=refresh)
     except AuthError as error:
-        status = 401 if error.code == "not_authenticated" else 400
-        if error.code in {"service_unavailable", "fetch_error"}:
-            status = 503
-        raise HTTPException(
-            status_code=status,
-            detail={"code": error.code, "message": str(error)},
-        ) from error
+        raise _handle_auth_error(error, protected=True) from error
 
 
 @app.post("/api/records/cancel")
@@ -336,15 +325,7 @@ def records_cancel(body: CancelRecordRequest, launch: dict[str, str] = Depends(v
     try:
         return cancel_record(body.vk_user_id, body.record_id, _cfg())
     except AuthError as error:
-        status = 400
-        if error.code == "not_authenticated":
-            status = 401
-        elif error.code in {"service_unavailable", "fetch_error"}:
-            status = 503
-        raise HTTPException(
-            status_code=status,
-            detail={"code": error.code, "message": str(error)},
-        ) from error
+        raise _handle_auth_error(error, protected=True) from error
 
 
 @app.get("/api/records/reschedule-slots")
@@ -361,15 +342,7 @@ def records_reschedule_slots(
     try:
         return load_reschedule_slots(vk_user_id, record_id, _cfg())
     except AuthError as error:
-        status = 400
-        if error.code == "not_authenticated":
-            status = 401
-        elif error.code in {"service_unavailable", "fetch_error"}:
-            status = 503
-        raise HTTPException(
-            status_code=status,
-            detail={"code": error.code, "message": str(error)},
-        ) from error
+        raise _handle_auth_error(error, protected=True) from error
 
 
 @app.post("/api/records/reschedule")
@@ -384,15 +357,12 @@ def records_reschedule(body: RescheduleRecordRequest, launch: dict[str, str] = D
             _cfg(),
         )
     except AuthError as error:
-        status = 400
-        if error.code == "not_authenticated":
-            status = 401
-        elif error.code in {"service_unavailable", "fetch_error", "booking_failed"}:
-            status = 503 if error.code in {"service_unavailable", "fetch_error"} else 400
-        raise HTTPException(
-            status_code=status,
-            detail={"code": error.code, "message": str(error)},
-        ) from error
+        if error.code == "booking_failed":
+            raise HTTPException(
+                status_code=400,
+                detail={"code": error.code, "message": str(error)},
+            ) from error
+        raise _handle_auth_error(error, protected=True) from error
 
 
 @app.post("/api/schedule/guest-check")
@@ -424,15 +394,7 @@ def schedule_book_eligibility(
     try:
         return check_booking_eligibility(vk_user_id, activity_id, activity_date, _cfg())
     except AuthError as error:
-        status = 400
-        if error.code == "not_authenticated":
-            status = 401
-        elif error.code in {"service_unavailable", "fetch_error"}:
-            status = 503
-        raise HTTPException(
-            status_code=status,
-            detail={"code": error.code, "message": str(error)},
-        ) from error
+        raise _handle_auth_error(error, protected=True) from error
 
 
 @app.post("/api/schedule/book")
@@ -446,17 +408,10 @@ def schedule_book(body: BookScheduleRequest, launch: dict[str, str] = Depends(vk
             _cfg(),
             guest_phone=body.phone,
             guest_name=body.name,
+            guest_surname=body.surname,
         )
     except AuthError as error:
-        status = 400
-        if error.code == "not_authenticated":
-            status = 401
-        elif error.code in {"service_unavailable", "fetch_error"}:
-            status = 503
-        raise HTTPException(
-            status_code=status,
-            detail={"code": error.code, "message": str(error)},
-        ) from error
+        raise _handle_auth_error(error, protected=True) from error
 
 
 @app.get("/api/studio/feed")
@@ -479,13 +434,7 @@ def abonement(vk_user_id: int, launch: dict[str, str] = Depends(vk_launch_from_h
     try:
         return load_abonements(vk_user_id, _cfg())
     except AuthError as error:
-        status = 401 if error.code == "not_authenticated" else 400
-        if error.code in {"service_unavailable", "fetch_error"}:
-            status = 503
-        raise HTTPException(
-            status_code=status,
-            detail={"code": error.code, "message": str(error)},
-        ) from error
+        raise _handle_auth_error(error, protected=True) from error
 
 
 @app.get("/api/home")
@@ -496,13 +445,7 @@ def home(vk_user_id: int, refresh: bool = False, launch: dict[str, str] = Depend
     try:
         return load_home(vk_user_id, _cfg(), force_refresh=refresh)
     except AuthError as error:
-        status = 401 if error.code == "not_authenticated" else 400
-        if error.code in {"service_unavailable", "fetch_error"}:
-            status = 503
-        raise HTTPException(
-            status_code=status,
-            detail={"code": error.code, "message": str(error)},
-        ) from error
+        raise _handle_auth_error(error, protected=True) from error
 
 
 @app.get("/api/cabinet")
@@ -513,10 +456,4 @@ def cabinet(vk_user_id: int, refresh: bool = False, launch: dict[str, str] = Dep
     try:
         return load_cabinet(vk_user_id, _cfg(), force_refresh=refresh)
     except AuthError as error:
-        status = 401 if error.code == "not_authenticated" else 400
-        if error.code in {"service_unavailable", "fetch_error"}:
-            status = 503
-        raise HTTPException(
-            status_code=status,
-            detail={"code": error.code, "message": str(error)},
-        ) from error
+        raise _handle_auth_error(error, protected=True) from error

@@ -9,6 +9,7 @@ from home_alerts import build_home_alerts
 from miniapp_config import MiniAppConfig
 from record_serializer import is_upcoming, serialize_record
 from rhythm_plan import build_inactive_hint_detail, build_rhythm_plan
+from visit_stats import VISIT_RECORDS_DAYS_BACK, VISIT_RECORDS_LIMIT, build_visit_stats
 from client_cache import (
     clear_client_data_caches,
     fetch_abonements_fresh,
@@ -84,20 +85,38 @@ def load_home(
             next_record = serialize_record(raw)
             break
 
-    visit_history = [
-        entry
-        for visit in (data.visit_history or [])
-        for entry in [_serialize_visit_history(visit)]
-        if entry
-    ]
-    recent_visits = [
-        {
-            "dateIso": item.get("dateIso"),
-            "service": item.get("service"),
-        }
-        for visit in (data.recent_visits or [])
-        for item in [_serialize_visit(visit)]
-    ]
+    visit_history = []
+    recent_visits = []
+    try:
+        raw_records = yclients.get_client_records(
+            data.profile["id"],
+            days_back=VISIT_RECORDS_DAYS_BACK,
+            count=VISIT_RECORDS_LIMIT,
+        )
+        visit_stats = build_visit_stats(raw_records)
+        visit_history = visit_stats["visitHistory"]
+        recent_visits = [
+            {
+                "dateIso": item.get("dateIso"),
+                "service": item.get("service"),
+            }
+            for item in visit_stats["recentVisits"]
+        ]
+    except Exception:
+        visit_history = [
+            entry
+            for visit in (data.visit_history or [])
+            for entry in [_serialize_visit_history(visit)]
+            if entry
+        ]
+        recent_visits = [
+            {
+                "dateIso": item.get("dateIso"),
+                "service": item.get("service"),
+            }
+            for visit in (data.recent_visits or [])
+            for item in [_serialize_visit(visit)]
+        ]
 
     inactive_detail = build_inactive_hint_detail(visit_history)
     rhythm_plan = None
