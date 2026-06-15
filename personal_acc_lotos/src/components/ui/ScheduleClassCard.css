@@ -17,8 +17,8 @@
 }
 
 .schedule-card--full {
-  opacity: 0.72;
-  background: linear-gradient(160deg, #f8f5f2 0%, #f0ebe6 100%);
+  background: var(--lotos-schedule-full-bg);
+  border-color: var(--lotos-danger-bg);
 }
 
 .schedule-card__time-col {
@@ -34,7 +34,7 @@
 }
 
 .schedule-card--full .schedule-card__time-col {
-  background: rgba(74, 44, 61, 0.06);
+  background: var(--lotos-schedule-full-time-bg);
 }
 
 .schedule-card__time {
@@ -85,13 +85,13 @@
 }
 
 .schedule-card__spots--free {
-  background: rgba(90, 125, 98, 0.12);
+  background: var(--lotos-success-bg);
   color: var(--lotos-success);
 }
 
 .schedule-card__spots--full {
-  background: rgba(196, 77, 77, 0.14);
-  color: var(--lotos-danger);
+  background: var(--lotos-danger-bg);
+  color: var(--lotos-danger-soft-text);
 }
 
 .schedule-card__arrow {
@@ -102,5 +102,6 @@
 }
 
 .schedule-card--full .schedule-card__arrow {
-  opacity: 0.4;
+  color: var(--lotos-text-muted);
+  opacity: 0.65;
 }

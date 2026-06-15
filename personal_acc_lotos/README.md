@@ -24,7 +24,8 @@ npm run dev
 | Команда | Описание |
 |---------|----------|
 | `npm run dev` | Фронтенд http://localhost:5173 |
-| `npm run dev:api` | API http://127.0.0.1:8080 |
+| `npm run dev:api` | API http://127.0.0.1:8081 (прокси из Vite) |
+| `npm run dev:api:fresh` | Остановить старый API и запустить заново |
 | `npm run dev:mobile` | Фронт с `--host` для телефона в Wi‑Fi |
 | `npm run build` | Сборка в `dist/` |
 
@@ -37,6 +38,6 @@ npm run dev
 
 ## Авторизация
 
-Многоуровневый вход: телефон → код в ЛС VK (если разрешены уведомления) → имя/фамилия как запасной вариант. Все запросы с `vk_user_id` проверяют подпись launch params (`VK_APP_SECRET`).
+Многоуровневый вход без SMS: телефон → (пароль, если уже задан) или имя в студии → задать пароль при первом входе. `authenticated` только при телефоне и `password_hash` в БД.
 
 На Render задайте `VK_APP_SECRET` (защищённый ключ мини-приложения) и `VK_GROUP_TOKEN` (тот же, что у бота). Локально: `SKIP_VK_SIGN=true` в `server/.env`.

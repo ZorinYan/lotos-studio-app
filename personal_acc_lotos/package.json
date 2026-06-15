@@ -5,8 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:all": "concurrently -k -n api,web -c blue,green \"npm run dev:api\" \"npm run dev\"",
     "dev:mobile": "vite --host",
-    "dev:api": "python -m uvicorn main:app --reload --port 8080 --app-dir server",
+    "stop:api": "powershell -ExecutionPolicy Bypass -File scripts/stop-api.ps1",
+    "dev:api": "python -m uvicorn main:app --reload --host 127.0.0.1 --port 8081 --app-dir server --workers 1",
+    "dev:api:watch": "python -m uvicorn main:app --reload --host 127.0.0.1 --port 8081 --app-dir server --workers 1",
+    "dev:api:fresh": "npm run stop:api && npm run dev:api",
+    "predev:api": "python -m pip install -r server/requirements.txt -q",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
@@ -24,6 +29,7 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
+    "concurrently": "^10.0.3",
     "eslint": "^10.3.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",

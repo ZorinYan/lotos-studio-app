@@ -14,6 +14,11 @@ logger = logging.getLogger(__name__)
 DEFAULT_INTERVAL_SEC = 540
 
 
+def _is_local_url(url: str) -> bool:
+    lower = url.lower()
+    return "127.0.0.1" in lower or "localhost" in lower
+
+
 def _collect_base_urls() -> list[str]:
     urls: list[str] = []
     primary = os.getenv("KEEPALIVE_URL") or os.getenv("RENDER_EXTERNAL_URL")
@@ -25,12 +30,13 @@ def _collect_base_urls() -> list[str]:
         part = part.strip().rstrip("/")
         if part and part not in urls:
             urls.append(part)
-    return urls
+    return [url for url in urls if not _is_local_url(url)]
 
 
 class KeepAliveService:
-    def __init__(self, base_urls: list[str], interval_sec: int) -> None:
-        self.urls = [f"{url}/health" for url in base_urls]
+    def __init__(self, base_urls: list[str], interval_sec: int, *, ping_db: bool = False) -> None:
+        suffix = "?db=true" if ping_db else ""
+        self.urls = [f"{url}/health{suffix}" for url in base_urls]
         self.interval_sec = max(interval_sec, 300)
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
@@ -69,7 +75,11 @@ class KeepAliveService:
 
 
 def start_from_env() -> KeepAliveService | None:
-    if os.getenv("KEEPALIVE_ENABLED", "true").strip().lower() in {"0", "false", "no", "off"}:
+    if os.getenv("KEEPALIVE_ENABLED", "").strip().lower() in {"0", "false", "no", "off"}:
+        return None
+
+    # Локально без Render — keep-alive не нужен и может мешать.
+    if not os.getenv("RENDER_EXTERNAL_URL", "").strip() and not os.getenv("KEEPALIVE_URL", "").strip():
         return None
 
     urls = _collect_base_urls()
@@ -77,6 +87,11 @@ def start_from_env() -> KeepAliveService | None:
         return None
 
     interval = int(os.getenv("KEEPALIVE_INTERVAL_SEC", str(DEFAULT_INTERVAL_SEC)))
-    service = KeepAliveService(urls, interval)
+    ping_db = os.getenv("KEEPALIVE_PING_DB", "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+    } or bool(os.getenv("RENDER_EXTERNAL_URL", "").strip())
+    service = KeepAliveService(urls, interval, ping_db=ping_db)
     service.start()
     return service

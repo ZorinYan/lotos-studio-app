@@ -23,8 +23,9 @@ export const bridge = resolveBridge()
 
 let initPromise: Promise<{ result: true }> | null = null
 
-export const MESSAGES_PERMISSION_KEY = 'lotos_vk_messages_allowed'
-const NOTIFICATIONS_TIMEOUT_MS = 8_000
+export const MESSAGES_PERMISSION_KEY = 'lotos_vk_community_messages_allowed'
+const PUSH_NOTIFICATIONS_KEY = 'lotos_vk_push_notifications_allowed'
+const PERMISSION_TIMEOUT_MS = 8_000
 
 export function sendVkInit(): Promise<{ result: true }> {
   initPromise ??= bridge.send('VKWebAppInit') as Promise<{ result: true }>
@@ -71,50 +72,94 @@ export function readNotificationsFromLaunch(): boolean | null {
   return null
 }
 
-export function resolveInitialNotificationsEnabled(): boolean {
-  return (
-    getCachedNotificationsPermission()
-    ?? readNotificationsFromLaunch()
-    ?? false
-  )
+export function readMessagesFromLaunch(): boolean | null {
+  const value = getVkLaunchParams().vk_messages_allowed
+  if (value === '1') return true
+  if (value === '0') return false
+  return null
 }
 
-export async function setVkNotificationsEnabled(enabled: boolean): Promise<boolean> {
+export function resolveInitialMessagesEnabled(): boolean {
+  sessionStorage.removeItem('lotos_vk_notifications_allowed')
+  return getCachedNotificationsPermission() ?? readMessagesFromLaunch() ?? false
+}
+
+export function resolveInitialNotificationsEnabled(): boolean {
+  const cached = sessionStorage.getItem(PUSH_NOTIFICATIONS_KEY)
+  if (cached !== null) {
+    return cached === 'true'
+  }
+  return readNotificationsFromLaunch() ?? false
+}
+
+export async function requestVkCommunityMessagesPermission(
+  groupId: number,
+): Promise<boolean> {
+  if (!Number.isFinite(groupId) || groupId <= 0) {
+    setCachedNotificationsPermission(false)
+    return false
+  }
+
+  const cached = getCachedNotificationsPermission()
+  if (cached === true) {
+    return true
+  }
+
   if (import.meta.env.VITE_SKIP_VK_BRIDGE === 'true' || !isVkEnvironment()) {
     setCachedNotificationsPermission(false)
     return false
   }
 
   try {
-    const method = enabled ? 'VKWebAppAllowNotifications' : 'VKWebAppDenyNotifications'
+    await sendVkInit()
     const result = (await withTimeout(
-      bridge.send(method) as Promise<{ result?: boolean }>,
-      NOTIFICATIONS_TIMEOUT_MS,
+      bridge.send('VKWebAppAllowMessagesFromGroup', {
+        group_id: Math.abs(groupId),
+      }) as Promise<{ result?: boolean }>,
+      PERMISSION_TIMEOUT_MS,
     )) as { result?: boolean }
-    const allowed = enabled && result?.result === true
+    const allowed = result?.result === true
     setCachedNotificationsPermission(allowed)
     return allowed
   } catch {
-    if (!enabled) {
-      setCachedNotificationsPermission(false)
-      return false
-    }
     return getCachedNotificationsPermission() ?? false
   }
 }
 
 export async function requestVkNotificationsPermission(): Promise<boolean> {
-  const cached = getCachedNotificationsPermission()
+  const cached = sessionStorage.getItem(PUSH_NOTIFICATIONS_KEY)
   if (cached !== null) {
-    return cached
+    return cached === 'true'
   }
 
   if (import.meta.env.VITE_SKIP_VK_BRIDGE === 'true' || !isVkEnvironment()) {
-    setCachedNotificationsPermission(false)
+    sessionStorage.setItem(PUSH_NOTIFICATIONS_KEY, 'false')
     return false
   }
 
-  return setVkNotificationsEnabled(true)
+  try {
+    await sendVkInit()
+    const result = (await withTimeout(
+      bridge.send('VKWebAppAllowNotifications') as Promise<{ result?: boolean }>,
+      PERMISSION_TIMEOUT_MS,
+    )) as { result?: boolean }
+    const allowed = result?.result === true
+    sessionStorage.setItem(PUSH_NOTIFICATIONS_KEY, String(allowed))
+    return allowed
+  } catch {
+    return sessionStorage.getItem(PUSH_NOTIFICATIONS_KEY) === 'true'
+  }
+}
+
+/** Push-уведомления VK (настройки), не путать с ЛС от сообщества для OTP. */
+export async function setVkNotificationsEnabled(enabled: boolean): Promise<boolean> {
+  if (!enabled) {
+    sessionStorage.setItem(PUSH_NOTIFICATIONS_KEY, 'false')
+    return true
+  }
+
+  sessionStorage.removeItem(PUSH_NOTIFICATIONS_KEY)
+  return requestVkNotificationsPermission()
 }
 
 function shouldInitEarly(): boolean {

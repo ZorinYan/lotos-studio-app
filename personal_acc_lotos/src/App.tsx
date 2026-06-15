@@ -2,7 +2,7 @@ import { AppRoot, ConfigProvider, Placeholder, ScreenSpinner } from '@vkontakte/
 import '@vkontakte/vkui/dist/vkui.css'
 import './styles/lotos-theme.css'
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
-import { fetchAuthStatus, fetchPublicConfig, logout, type PublicConfig } from './api/auth'
+import { clearBootCache, fetchBoot, fetchPublicConfig, logout, type AuthSessionPayload, type AuthStatus, type PublicConfig, type UserPrefs, type VerifyResponse } from './api/auth'
 import { fetchSettings } from './api/settings'
 import { ApiError } from './api/client'
 import { registerSessionExpiredHandler } from './api/session'
@@ -17,7 +17,7 @@ import { SchedulePage } from './pages/SchedulePage'
 import { SettingsPage } from './pages/SettingsPage'
 import { LotosThemeProvider, useLotosTheme } from './hooks/useLotosTheme'
 import { useVkApp } from './hooks/useVkApp'
-import { hasSeenWelcomeBanner, markWelcomeBannerSeen } from './utils/welcomeBanner'
+import { markWelcomeBannerSeen } from './utils/welcomeBanner'
 import './App.css'
 
 type Screen = 'loading' | 'auth' | AppTab
@@ -36,26 +36,40 @@ function LotosAppShell({ children }: { children: ReactNode }) {
 
 function AppContent() {
   const { ready, vkUser, error: vkError } = useVkApp()
+  const { setColorScheme } = useLotosTheme()
   const [screen, setScreen] = useState<Screen>('loading')
   const [config, setConfig] = useState<PublicConfig | null>(null)
   const [phoneDisplay, setPhoneDisplay] = useState<string | null>(null)
   const [clientName, setClientName] = useState<string | null>(null)
   const [favoriteTrainerId, setFavoriteTrainerId] = useState<number | null>(null)
   const [bootError, setBootError] = useState<string | null>(null)
+  const [sessionChecking, setSessionChecking] = useState(true)
   const [guestSchedule, setGuestSchedule] = useState(false)
   const [authenticated, setAuthenticated] = useState(false)
   const [welcomeOpen, setWelcomeOpen] = useState(false)
+
+  const applyUserPrefs = useCallback(
+    (prefs: UserPrefs, options?: { showWelcome?: boolean }) => {
+      setColorScheme(prefs.colorScheme)
+      if (options?.showWelcome && !prefs.welcomeBannerSeen) {
+        setWelcomeOpen(true)
+      }
+    },
+    [setColorScheme],
+  )
 
   const loadUserSettings = useCallback(async (userId: number) => {
     try {
       const settings = await fetchSettings(userId)
       setFavoriteTrainerId(settings.favoriteTrainer?.id ?? null)
+      return settings
     } catch {
       setFavoriteTrainerId(null)
+      return null
     }
   }, [])
 
-  const applySession = useCallback((status: Awaited<ReturnType<typeof fetchAuthStatus>>) => {
+  const applySession = useCallback((status: AuthStatus) => {
     setAuthenticated(status.authenticated)
     if (status.authenticated) {
       setPhoneDisplay(status.phoneDisplay)
@@ -69,74 +83,104 @@ function AppContent() {
   }, [])
 
   const checkSession = useCallback(async (userId: number) => {
-    const [publicConfig, status] = await Promise.all([
-      fetchPublicConfig(),
-      fetchAuthStatus(userId),
-    ])
-    setConfig(publicConfig)
-    applySession(status)
-    if (status.authenticated) {
-      await loadUserSettings(userId)
+    const boot = await fetchBoot(userId)
+    setConfig(boot.config)
+    applySession(boot.auth)
+    setColorScheme(boot.prefs.colorScheme)
+    if (boot.auth.authenticated) {
       setScreen('home')
+      if (!boot.prefs.welcomeBannerSeen) {
+        setWelcomeOpen(true)
+      }
+      void loadUserSettings(userId)
     } else {
       setScreen('auth')
     }
-  }, [applySession, loadUserSettings])
+  }, [applySession, loadUserSettings, setColorScheme])
 
   useEffect(() => {
     if (!ready || !vkUser) return
 
     let cancelled = false
-    const bootTimeoutId = window.setTimeout(() => {
+    setScreen('auth')
+    setSessionChecking(true)
+    setBootError(null)
+
+    const unlockFormTimer = window.setTimeout(() => {
       if (!cancelled) {
-        setBootError(
-          'Сервер долго не отвечает. На Render первый запуск может занять до минуты — обновите страницу.',
-        )
-        setScreen('auth')
+        setSessionChecking(false)
       }
-    }, 30_000)
+    }, 8_000)
 
     void (async () => {
       try {
         await checkSession(vkUser.id)
       } catch (err) {
         if (!cancelled) {
-          setBootError(err instanceof ApiError ? err.message : 'Не удалось загрузить приложение')
+          const message =
+            err instanceof ApiError
+              ? err.message
+              : err instanceof Error
+                ? err.message
+                : 'Не удалось загрузить приложение'
+          setBootError(message)
           setScreen('auth')
         }
       } finally {
-        window.clearTimeout(bootTimeoutId)
+        window.clearTimeout(unlockFormTimer)
+        if (!cancelled) {
+          setSessionChecking(false)
+        }
       }
     })()
 
     return () => {
       cancelled = true
-      window.clearTimeout(bootTimeoutId)
+      window.clearTimeout(unlockFormTimer)
     }
   }, [ready, vkUser, checkSession])
 
-  const handleAuthenticated = useCallback(async () => {
+  const handleAuthenticated = useCallback(async (session?: AuthSessionPayload) => {
     if (!vkUser) return
-    try {
-      const [publicConfig, status] = await Promise.all([
-        fetchPublicConfig(),
-        fetchAuthStatus(vkUser.id),
-      ])
-      setConfig(publicConfig)
-      applySession(status)
-      await loadUserSettings(vkUser.id)
-      if (!hasSeenWelcomeBanner(vkUser.id)) {
-        setWelcomeOpen(true)
-      }
+
+    if (session) {
+      setAuthenticated(true)
+      setPhoneDisplay(session.phoneDisplay)
+      setClientName(session.clientName ?? null)
+      setGuestSchedule(false)
+      setBootError(null)
       setScreen('home')
-    } catch {
-      setScreen('home')
+      void loadUserSettings(vkUser.id).then((settings) => {
+        if (settings && !settings.welcomeBannerSeen) {
+          setWelcomeOpen(true)
+        }
+      })
+      return
     }
-  }, [vkUser, applySession, loadUserSettings])
+
+    try {
+      const boot = await fetchBoot(vkUser.id)
+      setConfig(boot.config)
+      applySession(boot.auth)
+      if (!boot.auth.authenticated) {
+        setBootError('Сессия не сохранилась. Попробуйте войти снова.')
+        setScreen('auth')
+        return
+      }
+      await loadUserSettings(vkUser.id)
+      applyUserPrefs(boot.prefs, { showWelcome: true })
+      setScreen('home')
+    } catch (err) {
+      setBootError(
+        err instanceof ApiError ? err.message : 'Не удалось завершить вход',
+      )
+      setScreen('auth')
+    }
+  }, [vkUser, applySession, loadUserSettings, applyUserPrefs])
 
   const handleWelcomeClose = useCallback(() => {
     if (vkUser) {
-      markWelcomeBannerSeen(vkUser.id)
+      void markWelcomeBannerSeen(vkUser.id)
     }
     setWelcomeOpen(false)
   }, [vkUser])
@@ -158,16 +202,20 @@ function AppContent() {
     setScreen('schedule')
   }, [vkUser])
 
-  const handleLogout = useCallback(async () => {
+  const handleLogout = useCallback(() => {
     if (!vkUser) return
-    await logout(vkUser.id)
+    clearBootCache(vkUser.id)
     setPhoneDisplay(null)
     setClientName(null)
     setFavoriteTrainerId(null)
     setAuthenticated(false)
     setGuestSchedule(false)
     setWelcomeOpen(false)
+    setBootError(null)
     setScreen('auth')
+    void logout(vkUser.id).catch(() => {
+      // UI уже на экране входа; повторный logout не критичен
+    })
   }, [vkUser])
 
   const forceLogout = useCallback(
@@ -201,10 +249,7 @@ function AppContent() {
   const handleTabNavigate = useCallback((tab: AppTab) => {
     setGuestSchedule(false)
     setScreen(tab)
-    if (tab === 'settings' && vkUser) {
-      void loadUserSettings(vkUser.id)
-    }
-  }, [loadUserSettings, vkUser])
+  }, [])
 
   if (!ready) {
     return (
@@ -228,19 +273,21 @@ function AppContent() {
   const showTabShell = authenticated && !guestSchedule && TAB_SCREENS.includes(screen as AppTab)
 
   function renderScreen() {
-    if (screen === 'loading') {
-      return <ScreenSpinner />
-    }
-
     if (screen === 'auth') {
       return (
         <AuthPage
           vkUser={user}
           bootError={bootError}
+          initialConfig={config}
+          sessionChecking={sessionChecking}
           onAuthenticated={handleAuthenticated}
           onOpenSchedule={() => void handleOpenGuestSchedule()}
         />
       )
+    }
+
+    if (screen === 'loading') {
+      return <ScreenSpinner />
     }
 
     if (screen === 'home') {

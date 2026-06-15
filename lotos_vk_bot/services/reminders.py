@@ -101,7 +101,7 @@ class ReminderService:
 
                 text = format_reminder(record, self.config.studio_name, offset)
                 self._send(vk_user_id, text, f"тренировка record={record_id} {reminder_type}")
-                reminders_storage.mark_sent_record(record_id, reminder_type)
+                reminders_storage.mark_sent_record(vk_user_id, record_id, reminder_type)
 
     def _check_abonement_reminders(self, vk_user_id: int, phone: str) -> None:
         try:
@@ -125,7 +125,7 @@ class ReminderService:
             ):
                 text = format_abonement_one_left(item, self.config.studio_name)
                 self._send(vk_user_id, text, f"абонемент {abonement_id} one_left")
-                reminders_storage.mark_sent_abonement(abonement_id, "one_left")
+                reminders_storage.mark_sent_abonement(vk_user_id, abonement_id, "one_left")
 
             expiry = abonement_expiry_date(item)
             if (
@@ -135,7 +135,7 @@ class ReminderService:
             ):
                 text = format_abonement_expires_tomorrow(item, self.config.studio_name)
                 self._send(vk_user_id, text, f"абонемент {abonement_id} expires_1d")
-                reminders_storage.mark_sent_abonement(abonement_id, "expires_1d")
+                reminders_storage.mark_sent_abonement(vk_user_id, abonement_id, "expires_1d")
 
     def _send(self, vk_user_id: int, text: str, label: str) -> None:
         try:

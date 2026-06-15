@@ -1,18 +1,23 @@
 from contextlib import asynccontextmanager
 from datetime import date
+import logging
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from fastapi.responses import JSONResponse
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field
+
+import psycopg
 
 from auth_service import (
     AuthError,
     check_phone,
+    get_boot_state,
     get_auth_status,
     logout,
-    resend_otp,
+    set_password,
     verify_name,
-    verify_otp,
+    verify_password,
 )
 from vk_auth import guard_vk_user, vk_launch_from_header
 from booking_api import book_schedule_class, check_booking_eligibility, check_guest_booking
@@ -29,6 +34,7 @@ from vk_group_content import load_studio_feed
 from miniapp_config import MiniAppConfig, load_config
 from _lib_path import ensure_lib_path
 from keepalive import KeepAliveService, start_from_env
+from runtime_reset import reset_runtime_state
 
 ensure_lib_path()
 from utils.dates import studio_today  # noqa: E402
@@ -41,14 +47,28 @@ _keepalive: KeepAliveService | None = None
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     global _keepalive
+    from _lib_path import ensure_lib_path
+
+    ensure_lib_path()
+    from utils.postgres import close_pool, database_configured  # noqa: E402
+
+    reset_runtime_state()
+
+    if not database_configured():
+        raise RuntimeError("DATABASE_URL не задан")
+
+    logger.info("API worker started (runtime state clean)")
     _keepalive = start_from_env()
     yield
     if _keepalive is not None:
         _keepalive.stop()
         _keepalive = None
+    close_pool()
+    reset_runtime_state()
 
 
 app = FastAPI(title="Lotos Mini App API", lifespan=lifespan)
+logger = logging.getLogger(__name__)
 
 app.add_middleware(
     CORSMiddleware,
@@ -59,27 +79,45 @@ app.add_middleware(
 )
 
 
+def _db_unavailable_response() -> JSONResponse:
+    return JSONResponse(
+        status_code=503,
+        content={
+            "detail": {
+                "code": "db_unavailable",
+                "message": "База данных временно недоступна. Подождите и попробуйте снова.",
+            },
+        },
+    )
+
+
+@app.exception_handler(psycopg.Error)
+async def db_error(_request: Request, _exc: psycopg.Error):
+    return _db_unavailable_response()
+
+
 class VkUserRequest(BaseModel):
     vk_user_id: int = Field(gt=0)
 
 
 class PhoneRequest(VkUserRequest):
     phone: str = Field(min_length=5, max_length=30)
-    messages_allowed: bool = False
-
-
-class OtpVerifyRequest(VkUserRequest):
-    phone: str = Field(min_length=11, max_length=11)
-    code: str = Field(min_length=6, max_length=6)
-
-
-class OtpResendRequest(VkUserRequest):
-    phone: str = Field(min_length=11, max_length=11)
 
 
 class VerifyRequest(VkUserRequest):
     phone: str = Field(min_length=11, max_length=11)
     name: str = Field(min_length=1, max_length=120)
+
+
+class PasswordVerifyRequest(VkUserRequest):
+    phone: str = Field(min_length=11, max_length=11)
+    password: str = Field(min_length=6, max_length=72)
+
+
+class PasswordSetRequest(VkUserRequest):
+    phone: str = Field(min_length=11, max_length=11)
+    password: str = Field(min_length=6, max_length=72)
+    password_confirm: str = Field(min_length=6, max_length=72)
 
 
 class BookScheduleRequest(VkUserRequest):
@@ -105,10 +143,31 @@ class RescheduleRecordRequest(VkUserRequest):
 
 
 class SettingsUpdateRequest(VkUserRequest):
+    model_config = ConfigDict(populate_by_name=True)
+
     favorite_staff_id: int | None = None
     favorite_staff_name: str | None = Field(default=None, max_length=120)
     clear_favorite: bool = False
-    notifications_enabled: bool | None = None
+    notifications_enabled: bool | None = Field(
+        default=None,
+        validation_alias=AliasChoices("notifications_enabled", "notificationsEnabled"),
+    )
+    color_scheme: str | None = Field(
+        default=None,
+        pattern="^(light|dark)$",
+        validation_alias=AliasChoices("color_scheme", "colorScheme"),
+    )
+    welcome_banner_seen: bool | None = Field(
+        default=None,
+        validation_alias=AliasChoices("welcome_banner_seen", "welcomeBannerSeen"),
+    )
+
+
+class SettingsResponse(BaseModel):
+    favoriteTrainer: dict | None = None
+    notificationsEnabled: bool = False
+    colorScheme: str = "light"
+    welcomeBannerSeen: bool = False
 
 
 def _cfg() -> MiniAppConfig:
@@ -119,7 +178,7 @@ def _handle_auth_error(error: AuthError, *, protected: bool = False) -> HTTPExce
     status = 400
     if protected and error.code in {"not_authenticated", "client_not_found"}:
         status = 401
-    elif error.code in {"service_unavailable", "fetch_error"}:
+    elif error.code in {"service_unavailable", "fetch_error", "yclients_timeout"}:
         status = 503
     return HTTPException(
         status_code=status,
@@ -134,6 +193,34 @@ def _guard(vk_user_id: int, launch: dict[str, str]) -> None:
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/api/boot")
+def boot(vk_user_id: int, launch: dict[str, str] = Depends(vk_launch_from_header)):
+    if vk_user_id <= 0:
+        raise HTTPException(status_code=400, detail="Некорректный vk_user_id")
+    _guard(vk_user_id, launch)
+    cfg = _cfg()
+    config_payload: dict[str, str | int] = {
+        "studioName": cfg.studio_name,
+        "bookingUrl": cfg.yclients_booking_url,
+        "studioPhone": cfg.studio_phone,
+    }
+    if cfg.vk_group_id:
+        config_payload["vkGroupId"] = cfg.vk_group_id
+
+    status, prefs = get_boot_state(vk_user_id)
+
+    return {
+        "config": config_payload,
+        "auth": {
+            "authenticated": status.authenticated,
+            "phone": status.phone,
+            "phoneDisplay": status.phone_display,
+            "clientName": status.client_name,
+        },
+        "prefs": prefs,
+    }
 
 
 @app.get("/api/config/public")
@@ -154,7 +241,7 @@ def auth_status(vk_user_id: int, launch: dict[str, str] = Depends(vk_launch_from
     if vk_user_id <= 0:
         raise HTTPException(status_code=400, detail="Некорректный vk_user_id")
     _guard(vk_user_id, launch)
-    status = get_auth_status(vk_user_id, _cfg())
+    status = get_auth_status(vk_user_id)
     return {
         "authenticated": status.authenticated,
         "phone": status.phone,
@@ -167,12 +254,7 @@ def auth_status(vk_user_id: int, launch: dict[str, str] = Depends(vk_launch_from
 def auth_phone(body: PhoneRequest, launch: dict[str, str] = Depends(vk_launch_from_header)):
     _guard(body.vk_user_id, launch)
     try:
-        result = check_phone(
-            body.vk_user_id,
-            body.phone,
-            _cfg(),
-            messages_allowed=body.messages_allowed,
-        )
+        result = check_phone(body.vk_user_id, body.phone, _cfg())
     except AuthError as error:
         raise _handle_auth_error(error) from error
 
@@ -180,38 +262,6 @@ def auth_phone(body: PhoneRequest, launch: dict[str, str] = Depends(vk_launch_fr
         "step": result.step,
         "phone": result.phone,
         "requiresSurname": result.requires_surname,
-        "otpSent": result.otp_sent,
-    }
-
-
-@app.post("/api/auth/otp/verify")
-def auth_otp_verify(body: OtpVerifyRequest, launch: dict[str, str] = Depends(vk_launch_from_header)):
-    _guard(body.vk_user_id, launch)
-    try:
-        result = verify_otp(body.vk_user_id, body.phone, body.code, _cfg())
-    except AuthError as error:
-        raise _handle_auth_error(error) from error
-
-    return {
-        "success": True,
-        "phone": result.phone,
-        "phoneDisplay": result.phone_display,
-    }
-
-
-@app.post("/api/auth/otp/resend")
-def auth_otp_resend(body: OtpResendRequest, launch: dict[str, str] = Depends(vk_launch_from_header)):
-    _guard(body.vk_user_id, launch)
-    try:
-        result = resend_otp(body.vk_user_id, body.phone, _cfg())
-    except AuthError as error:
-        raise _handle_auth_error(error) from error
-
-    return {
-        "step": result.step,
-        "phone": result.phone,
-        "requiresSurname": result.requires_surname,
-        "otpSent": result.otp_sent,
     }
 
 
@@ -227,6 +277,54 @@ def auth_verify(body: VerifyRequest, launch: dict[str, str] = Depends(vk_launch_
         "success": True,
         "phone": result.phone,
         "phoneDisplay": result.phone_display,
+        "needsPassword": result.needs_password,
+    }
+
+
+@app.post("/api/auth/password/verify")
+def auth_password_verify(
+    body: PasswordVerifyRequest,
+    launch: dict[str, str] = Depends(vk_launch_from_header),
+):
+    _guard(body.vk_user_id, launch)
+    try:
+        result = verify_password(body.vk_user_id, body.phone, body.password, _cfg())
+    except AuthError as error:
+        raise _handle_auth_error(error) from error
+
+    return {
+        "success": True,
+        "authenticated": True,
+        "phone": result.phone,
+        "phoneDisplay": result.phone_display,
+        "clientName": result.client_name,
+        "needsPassword": result.needs_password,
+    }
+
+
+@app.post("/api/auth/password/set")
+def auth_password_set(
+    body: PasswordSetRequest,
+    launch: dict[str, str] = Depends(vk_launch_from_header),
+):
+    _guard(body.vk_user_id, launch)
+    if body.password != body.password_confirm:
+        raise HTTPException(
+            status_code=400,
+            detail={"code": "password_mismatch", "message": "Пароли не совпадают."},
+        )
+    try:
+        result = set_password(body.vk_user_id, body.phone, body.password, _cfg())
+    except AuthError as error:
+        raise _handle_auth_error(error) from error
+
+    return {
+        "success": True,
+        "authenticated": True,
+        "phone": result.phone,
+        "phoneDisplay": result.phone_display,
+        "clientName": result.client_name,
+        "needsPassword": result.needs_password,
     }
 
 
@@ -237,7 +335,7 @@ def auth_logout(body: VkUserRequest, launch: dict[str, str] = Depends(vk_launch_
     return {"success": True}
 
 
-@app.get("/api/settings")
+@app.get("/api/settings", response_model=SettingsResponse)
 def settings_get(vk_user_id: int, launch: dict[str, str] = Depends(vk_launch_from_header)):
     if vk_user_id <= 0:
         raise HTTPException(status_code=400, detail="Некорректный vk_user_id")
@@ -245,18 +343,23 @@ def settings_get(vk_user_id: int, launch: dict[str, str] = Depends(vk_launch_fro
     return load_settings(vk_user_id)
 
 
-@app.put("/api/settings")
+@app.put("/api/settings", response_model=SettingsResponse)
 def settings_put(body: SettingsUpdateRequest, launch: dict[str, str] = Depends(vk_launch_from_header)):
     _guard(body.vk_user_id, launch)
     if body.clear_favorite and body.favorite_staff_id is not None:
         raise HTTPException(status_code=400, detail="Нельзя одновременно сбросить и задать тренера")
-    return update_settings(
-        body.vk_user_id,
-        favorite_staff_id=body.favorite_staff_id,
-        favorite_staff_name=body.favorite_staff_name,
-        clear_favorite=body.clear_favorite,
-        notifications_enabled=body.notifications_enabled,
-    )
+    try:
+        return update_settings(
+            body.vk_user_id,
+            favorite_staff_id=body.favorite_staff_id,
+            favorite_staff_name=body.favorite_staff_name,
+            clear_favorite=body.clear_favorite,
+            notifications_enabled=body.notifications_enabled,
+            color_scheme=body.color_scheme,
+            welcome_banner_seen=body.welcome_banner_seen,
+        )
+    except RuntimeError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
 
 
 @app.get("/api/schedule/filters")

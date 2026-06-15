@@ -1,0 +1,17 @@
+{
+  "name": "lotos-studio-app",
+  "private": true,
+  "description": "Корневые npm-скрипты → personal_acc_lotos/",
+  "scripts": {
+    "dev": "npm --prefix personal_acc_lotos run dev",
+    "dev:all": "npm --prefix personal_acc_lotos run dev:all",
+    "dev:mobile": "npm --prefix personal_acc_lotos run dev:mobile",
+    "build": "npm --prefix personal_acc_lotos run build",
+    "lint": "npm --prefix personal_acc_lotos run lint",
+    "preview": "npm --prefix personal_acc_lotos run preview",
+    "dev:api": "npm --prefix personal_acc_lotos run dev:api",
+    "dev:api:watch": "npm --prefix personal_acc_lotos run dev:api:watch",
+    "dev:api:fresh": "npm --prefix personal_acc_lotos run dev:api:fresh",
+    "stop:api": "npm --prefix personal_acc_lotos run stop:api"
+  }
+}

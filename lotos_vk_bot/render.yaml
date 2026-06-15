@@ -36,3 +36,5 @@ services:
         value: "540"
       - key: KEEPALIVE_EXTRA_URLS
         value: https://lotos-studio-app.onrender.com
+      - key: DATABASE_URL
+        sync: false

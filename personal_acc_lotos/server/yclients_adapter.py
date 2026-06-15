@@ -7,7 +7,7 @@ from miniapp_config import MiniAppConfig, load_config
 
 ensure_lib_path()
 
-from yclients import YClientsClient, YClientsError, YClientsPermissionError  # noqa: E402
+from yclients import YClientsClient, YClientsError, YClientsNetworkError, YClientsPermissionError  # noqa: E402
 
 
 @dataclass(frozen=True)
@@ -39,6 +39,7 @@ def create_yclients_client(config: MiniAppConfig | None = None) -> YClientsClien
 
 __all__ = [
     "YClientsError",
+    "YClientsNetworkError",
     "YClientsPermissionError",
     "create_yclients_client",
 ]

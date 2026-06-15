@@ -1,170 +1,80 @@
 import { FormItem, Input, ScreenSpinner, Snackbar } from '@vkontakte/vkui'
 import { useEffect, useState } from 'react'
 import {
-  fetchPublicConfig,
-  resendOtp,
+  fetchBoot,
+  setPassword,
   submitPhone,
   verifyName,
-  verifyOtp,
+  verifyPassword,
   type AuthStep,
+  type AuthSessionPayload,
   type PublicConfig,
+  type VerifyResponse,
 } from '../api/auth'
 import { ApiError } from '../api/client'
 import type { VkUser } from '../hooks/useVkApp'
-import { requestVkNotificationsPermission } from '../vkBridge'
 import './AuthPage.css'
 
-const OTP_WAIT_SEC = 60
+type FlowStep = 'phone' | AuthStep | 'setPassword'
 
 type AuthPageProps = {
   vkUser: VkUser
   bootError: string | null
-  onAuthenticated: () => void
+  initialConfig?: PublicConfig | null
+  sessionChecking?: boolean
+  onAuthenticated: (session?: AuthSessionPayload) => void | Promise<void>
   onOpenSchedule?: () => void
 }
 
-export function AuthPage({ vkUser, bootError, onAuthenticated, onOpenSchedule }: AuthPageProps) {
-  const [step, setStep] = useState<'phone' | AuthStep>('phone')
-  const [loading, setLoading] = useState(true)
+export function AuthPage({
+  vkUser,
+  bootError,
+  initialConfig = null,
+  sessionChecking = false,
+  onAuthenticated,
+  onOpenSchedule,
+}: AuthPageProps) {
+  const [step, setStep] = useState<FlowStep>('phone')
   const [submitting, setSubmitting] = useState(false)
-  const [config, setConfig] = useState<PublicConfig | null>(null)
+  const [config, setConfig] = useState<PublicConfig | null>(initialConfig)
   const [phoneInput, setPhoneInput] = useState('')
   const [nameInput, setNameInput] = useState('')
-  const [otpInput, setOtpInput] = useState('')
+  const [passwordInput, setPasswordInput] = useState('')
+  const [passwordConfirmInput, setPasswordConfirmInput] = useState('')
   const [verifiedPhone, setVerifiedPhone] = useState('')
   const [requiresSurname, setRequiresSurname] = useState(false)
-  const [messagesAllowed, setMessagesAllowed] = useState(false)
-  const [messagesPermissionPending, setMessagesPermissionPending] = useState(true)
-  const [otpSecondsLeft, setOtpSecondsLeft] = useState(OTP_WAIT_SEC)
-  const [otpSession, setOtpSession] = useState(0)
   const [error, setError] = useState<string | null>(bootError ?? null)
 
   useEffect(() => {
-    let cancelled = false
-
-    async function load() {
-      try {
-        const publicConfig = await fetchPublicConfig()
-        if (!cancelled) setConfig(publicConfig)
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof ApiError ? err.message : 'Не удалось загрузить данные')
-        }
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-
-      try {
-        const allowed = await requestVkNotificationsPermission()
-        if (!cancelled) {
-          setMessagesAllowed(allowed)
-          setMessagesPermissionPending(false)
-        }
-      } catch {
-        if (!cancelled) {
-          setMessagesAllowed(false)
-          setMessagesPermissionPending(false)
-        }
-      }
+    if (initialConfig) {
+      setConfig(initialConfig)
     }
-
-    void load()
-
-    return () => {
-      cancelled = true
-    }
-  }, [])
+  }, [initialConfig])
 
   useEffect(() => {
-    if (step !== 'otp') return
+    setError(bootError ?? null)
+  }, [bootError])
 
-    setOtpSecondsLeft(OTP_WAIT_SEC)
-    const intervalId = window.setInterval(() => {
-      setOtpSecondsLeft((prev) => {
-        if (prev <= 1) {
-          window.clearInterval(intervalId)
-          return 0
-        }
-        return prev - 1
-      })
-    }, 1000)
-
-    const timeoutId = window.setTimeout(() => {
-      setStep('name')
-      setError('Код не пришёл за минуту. Войдите по имени, как в студии.')
-    }, OTP_WAIT_SEC * 1000)
-
-    return () => {
-      window.clearInterval(intervalId)
-      window.clearTimeout(timeoutId)
-    }
-  }, [step, verifiedPhone, otpSession])
-
-  function goToNameStep(message?: string) {
-    setStep('name')
-    if (message) setError(message)
+  function resetPasswordFields() {
+    setPasswordInput('')
+    setPasswordConfirmInput('')
   }
 
   async function handlePhoneSubmit() {
     setSubmitting(true)
     setError(null)
     try {
-      const result = await submitPhone(
-        vkUser.id,
-        phoneInput,
-        !messagesPermissionPending && messagesAllowed,
-      )
+      const result = await submitPhone(vkUser.id, phoneInput)
       setVerifiedPhone(result.phone)
       setRequiresSurname(result.requiresSurname)
-      if (result.step === 'otp') {
-        setOtpInput('')
-        setOtpSession((value) => value + 1)
-        setStep('otp')
-      } else {
-        goToNameStep(
-          messagesAllowed
-            ? 'Не удалось отправить код в VK. Войдите по имени, как в студии.'
-            : undefined,
-        )
-      }
+      resetPasswordFields()
+      setStep(result.step)
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Не удалось проверить номер')
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  async function handleOtpSubmit() {
-    setSubmitting(true)
-    setError(null)
-    try {
-      await verifyOtp(vkUser.id, verifiedPhone, otpInput)
-      onAuthenticated()
-    } catch (err) {
-      if (err instanceof ApiError && err.code === 'otp_verification_failed') {
-        setError(err.message)
-        return
-      }
-      setError(err instanceof ApiError ? err.message : 'Не удалось проверить код')
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  async function handleOtpResend() {
-    setSubmitting(true)
-    setError(null)
-    try {
-      await resendOtp(vkUser.id, verifiedPhone)
-      setOtpInput('')
-      setOtpSession((value) => value + 1)
-      setStep('otp')
-    } catch (err) {
-      goToNameStep(
+      const message =
         err instanceof ApiError
           ? err.message
-          : 'Не удалось отправить код. Войдите по имени, как в студии.',
-      )
+          : 'Не удалось проверить номер. Убедитесь, что API запущен (npm run dev:api).'
+      setError(message)
     } finally {
       setSubmitting(false)
     }
@@ -174,17 +84,89 @@ export function AuthPage({ vkUser, bootError, onAuthenticated, onOpenSchedule }:
     setSubmitting(true)
     setError(null)
     try {
-      await verifyName(vkUser.id, verifiedPhone, nameInput)
-      onAuthenticated()
+      const result = await verifyName(vkUser.id, verifiedPhone, nameInput)
+      if (result.needsPassword) {
+        resetPasswordFields()
+        setStep('setPassword')
+      } else {
+        onAuthenticated()
+      }
     } catch (err) {
+      if (err instanceof ApiError && err.code === 'session_expired') {
+        setStep('phone')
+        setVerifiedPhone('')
+      }
       setError(err instanceof ApiError ? err.message : 'Не удалось подтвердить имя')
     } finally {
       setSubmitting(false)
     }
   }
 
-  if (loading) {
-    return <ScreenSpinner />
+  function sessionFromVerify(result: VerifyResponse): AuthSessionPayload {
+    return {
+      phone: result.phone,
+      phoneDisplay: result.phoneDisplay,
+      clientName: result.clientName ?? null,
+    }
+  }
+
+  async function handlePasswordSubmit() {
+    setSubmitting(true)
+    setError(null)
+    try {
+      const result = await verifyPassword(vkUser.id, verifiedPhone, passwordInput)
+      await onAuthenticated(sessionFromVerify(result))
+    } catch (err) {
+      if (err instanceof ApiError && err.code === 'password_not_set') {
+        setStep('name')
+      }
+      setError(err instanceof ApiError ? err.message : 'Не удалось проверить пароль')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  async function handleSetPasswordSubmit() {
+    setSubmitting(true)
+    setError(null)
+    try {
+      const result = await setPassword(
+        vkUser.id,
+        verifiedPhone,
+        passwordInput,
+        passwordConfirmInput,
+      )
+      await onAuthenticated(sessionFromVerify(result))
+    } catch (err) {
+      if (err instanceof ApiError && err.code === 'timeout') {
+        try {
+          const boot = await fetchBoot(vkUser.id)
+          if (boot.auth.authenticated) {
+            await onAuthenticated({
+              phone: boot.auth.phone ?? verifiedPhone,
+              phoneDisplay: boot.auth.phoneDisplay ?? verifiedPhone,
+              clientName: boot.auth.clientName,
+            })
+            return
+          }
+        } catch {
+          // пароль мог сохраниться, но boot недоступен
+        }
+      }
+      setError(err instanceof ApiError ? err.message : 'Не удалось сохранить пароль')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  if (submitting && step !== 'phone') {
+    return (
+      <div className="auth-page">
+        <div className="auth-page__hero">
+          <ScreenSpinner />
+        </div>
+      </div>
+    )
   }
 
   const greeting = vkUser.first_name
@@ -206,12 +188,20 @@ export function AuthPage({ vkUser, bootError, onAuthenticated, onOpenSchedule }:
         <section className="auth-page__card lotos-card">
           <p className="auth-page__step">Шаг 1</p>
           <h2 className="auth-page__section-title">Вход по номеру</h2>
+          {sessionChecking && (
+            <p className="auth-page__hint auth-page__hint--status">
+              Проверяем сессию… Форма откроется через несколько секунд.
+            </p>
+          )}
           <p className="auth-page__hint">
             Введите телефон, указанный при записи в студию.
-            {messagesAllowed
-              ? ' Мы отправим код в сообщения VK.'
-              : ' Подтверждение — по имени, как в студии.'}
+            {submitting ? ' Проверяем номер в студии — это может занять до минуты.' : ''}
           </p>
+          {error && (
+            <p className="auth-page__hint auth-page__hint--error" role="alert">
+              {error}
+            </p>
+          )}
           <FormItem top="Телефон" htmlFor="phone">
             <Input
               id="phone"
@@ -226,10 +216,10 @@ export function AuthPage({ vkUser, bootError, onAuthenticated, onOpenSchedule }:
           <button
             type="button"
             className="lotos-btn lotos-btn--primary lotos-btn--stretched"
-            disabled={submitting || !phoneInput.trim()}
+            disabled={submitting || sessionChecking || !phoneInput.trim()}
             onClick={() => void handlePhoneSubmit()}
           >
-            {submitting ? 'Проверяем…' : 'Продолжить'}
+            {sessionChecking ? 'Подключаемся…' : submitting ? 'Проверяем…' : 'Продолжить'}
           </button>
           {onOpenSchedule && (
             <button
@@ -244,25 +234,20 @@ export function AuthPage({ vkUser, bootError, onAuthenticated, onOpenSchedule }:
         </section>
       )}
 
-      {step === 'otp' && (
+      {step === 'password' && (
         <section className="auth-page__card lotos-card">
-          <p className="auth-page__step">Шаг 2 — код из VK</p>
-          <h2 className="auth-page__section-title">Проверка по сообщению</h2>
+          <p className="auth-page__step">Шаг 2</p>
+          <h2 className="auth-page__section-title">Ваш пароль</h2>
           <p className="auth-page__hint">
-            Код отправлен в личные сообщения от сообщества студии.
-            {otpSecondsLeft > 0
-              ? ` Осталось ${otpSecondsLeft} сек до входа по имени.`
-              : ''}
+            Введите пароль, который вы задавали при первом входе.
           </p>
-          <FormItem top="Код из VK" htmlFor="otp-code">
+          <FormItem top="Пароль" htmlFor="login-password">
             <Input
-              id="otp-code"
-              type="text"
-              inputMode="numeric"
-              maxLength={6}
-              placeholder="123456"
-              value={otpInput}
-              onChange={(event) => setOtpInput(event.target.value.replace(/\D/g, ''))}
+              id="login-password"
+              type="password"
+              placeholder="Пароль"
+              value={passwordInput}
+              onChange={(event) => setPasswordInput(event.target.value)}
               disabled={submitting}
             />
           </FormItem>
@@ -273,7 +258,7 @@ export function AuthPage({ vkUser, bootError, onAuthenticated, onOpenSchedule }:
               disabled={submitting}
               onClick={() => {
                 setStep('phone')
-                setOtpInput('')
+                resetPasswordFields()
               }}
             >
               Назад
@@ -282,34 +267,30 @@ export function AuthPage({ vkUser, bootError, onAuthenticated, onOpenSchedule }:
               type="button"
               className="lotos-btn lotos-btn--primary"
               style={{ flex: 1 }}
-              disabled={submitting || otpInput.length !== 6}
-              onClick={() => void handleOtpSubmit()}
+              disabled={submitting || passwordInput.length < 6}
+              onClick={() => void handlePasswordSubmit()}
             >
-              {submitting ? 'Проверяем…' : 'Войти'}
+              {submitting ? 'Входим…' : 'Войти'}
             </button>
           </div>
           <button
             type="button"
             className="auth-page__link-btn"
             disabled={submitting}
-            onClick={() => goToNameStep()}
+            onClick={() => {
+              setStep('name')
+              setNameInput('')
+              resetPasswordFields()
+            }}
           >
-            Не пришёл код? Войти по имени
-          </button>
-          <button
-            type="button"
-            className="auth-page__link-btn"
-            disabled={submitting}
-            onClick={() => void handleOtpResend()}
-          >
-            Отправить код ещё раз
+            Забыли пароль? Войти по имени
           </button>
         </section>
       )}
 
       {step === 'name' && (
         <section className="auth-page__card lotos-card">
-          <p className="auth-page__step">Подтверждение личности</p>
+          <p className="auth-page__step">Подтверждение</p>
           <h2 className="auth-page__section-title">Имя в студии</h2>
           <p className="auth-page__hint">
             {requiresSurname
@@ -347,9 +328,51 @@ export function AuthPage({ vkUser, bootError, onAuthenticated, onOpenSchedule }:
               disabled={submitting || !nameInput.trim()}
               onClick={() => void handleNameSubmit()}
             >
-              {submitting ? 'Входим…' : 'Войти'}
+              {submitting ? 'Проверяем…' : 'Продолжить'}
             </button>
           </div>
+        </section>
+      )}
+
+      {step === 'setPassword' && (
+        <section className="auth-page__card lotos-card">
+          <p className="auth-page__step">Регистрация</p>
+          <h2 className="auth-page__section-title">Придумайте пароль</h2>
+          <p className="auth-page__hint">
+            Задайте пароль для следующих входов. Минимум 6 символов.
+          </p>
+          <FormItem top="Пароль" htmlFor="new-password">
+            <Input
+              id="new-password"
+              type="password"
+              placeholder="Не короче 6 символов"
+              value={passwordInput}
+              onChange={(event) => setPasswordInput(event.target.value)}
+              disabled={submitting}
+            />
+          </FormItem>
+          <FormItem top="Повторите пароль" htmlFor="new-password-confirm">
+            <Input
+              id="new-password-confirm"
+              type="password"
+              placeholder="Ещё раз"
+              value={passwordConfirmInput}
+              onChange={(event) => setPasswordConfirmInput(event.target.value)}
+              disabled={submitting}
+            />
+          </FormItem>
+          <button
+            type="button"
+            className="lotos-btn lotos-btn--primary lotos-btn--stretched"
+            disabled={
+              submitting
+              || passwordInput.length < 6
+              || passwordConfirmInput.length < 6
+            }
+            onClick={() => void handleSetPasswordSubmit()}
+          >
+            {submitting ? 'Сохраняем…' : 'Сохранить и войти'}
+          </button>
         </section>
       )}
 

@@ -83,6 +83,21 @@
   line-height: 1.5;
 }
 
+.auth-page__hint--status {
+  color: var(--lotos-rose);
+}
+
+.auth-page__hint--error {
+  color: #c0392b;
+}
+
+.auth-page__messages-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--lotos-space-sm);
+  margin-bottom: var(--lotos-space-md);
+}
+
 .auth-page__link-btn {
   display: block;
   width: 100%;

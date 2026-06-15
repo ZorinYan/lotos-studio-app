@@ -10,9 +10,10 @@ let handlingSessionExpiry = false
 const SESSION_EXEMPT_PREFIXES = [
   '/api/auth/logout',
   '/api/auth/phone',
-  '/api/auth/otp',
   '/api/auth/verify',
+  '/api/auth/password',
   '/api/config/public',
+  '/api/boot',
   '/api/schedule/guest-check',
 ]
 

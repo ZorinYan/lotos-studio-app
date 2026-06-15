@@ -71,6 +71,12 @@
   --lotos-field-hover: #ebe0d6;
   --lotos-field-active: #e2d5c9;
   --lotos-field-border-hover: rgba(74, 44, 61, 0.22);
+  --lotos-schedule-full-bg: linear-gradient(
+    160deg,
+    var(--lotos-surface-elevated) 0%,
+    var(--lotos-danger-soft-bg) 100%
+  );
+  --lotos-schedule-full-time-bg: var(--lotos-plum-bg);
 
   /* Radius & shadow */
   --lotos-radius-sm: 12px;
@@ -160,6 +166,12 @@
   --lotos-field-hover: #3a2e34;
   --lotos-field-active: #44363d;
   --lotos-field-border-hover: rgba(255, 255, 255, 0.2);
+  --lotos-schedule-full-bg: linear-gradient(
+    160deg,
+    var(--lotos-surface-elevated) 0%,
+    var(--lotos-danger-soft-bg) 100%
+  );
+  --lotos-schedule-full-time-bg: var(--lotos-danger-soft-bg);
 
   --lotos-shadow-sm: 0 2px 12px rgba(0, 0, 0, 0.28);
   --lotos-shadow-md: 0 8px 32px rgba(0, 0, 0, 0.36);

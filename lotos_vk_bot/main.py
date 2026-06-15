@@ -72,6 +72,17 @@ Path("data").mkdir(parents=True, exist_ok=True)
 
 config = load_config()
 
+from utils.postgres import close_pool, database_configured, start_db_keepalive, warm_pool
+
+if not database_configured():
+    raise SystemExit("DATABASE_URL не задан")
+
+try:
+    warm_pool()
+    start_db_keepalive()
+except Exception as error:
+    raise SystemExit(f"Neon недоступен: {error}") from error
+
 vk_session = vk_api.VkApi(token=config.vk_token)
 vk = vk_session.get_api()
 messenger = Messenger(vk)

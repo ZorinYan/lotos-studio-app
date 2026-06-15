@@ -2,7 +2,12 @@ import { vkLaunchHeaders } from '../vkLaunch'
 import { isSessionExpiredError, notifySessionExpired } from './session'
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? ''
-const API_TIMEOUT_MS = 25_000
+export type ApiFetchOptions = RequestInit & {
+  timeoutMs?: number
+}
+
+const API_TIMEOUT_MS = 45_000
+export const AUTH_TIMEOUT_MS = 90_000
 
 export type ApiErrorBody = {
   code?: string
@@ -52,33 +57,39 @@ export function withRefresh(path: string, refresh = false): string {
   return path.includes('?') ? `${path}&refresh=1` : `${path}?refresh=1`
 }
 
-export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
+export async function apiFetch<T>(path: string, init?: ApiFetchOptions): Promise<T> {
   ensureApiBase()
 
+  const timeoutMs = init?.timeoutMs ?? API_TIMEOUT_MS
+  const { timeoutMs: _omitTimeout, ...fetchInit } = init ?? {}
+  void _omitTimeout
+
   const controller = new AbortController()
-  const timeoutId = window.setTimeout(() => controller.abort(), API_TIMEOUT_MS)
+  const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs)
 
   let response: Response
   try {
     response = await fetch(`${API_BASE}${path}`, {
-      ...init,
+      ...fetchInit,
       signal: controller.signal,
       headers: {
         'Content-Type': 'application/json',
         ...vkLaunchHeaders(),
-        ...(init?.headers ?? {}),
+        ...(fetchInit.headers ?? {}),
       },
     })
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
       throw new ApiError(
         'timeout',
-        'API не отвечает. Если сервер на Render Free — подождите до минуты и попробуйте снова.',
+        'Сервер долго не отвечает. Подождите немного и попробуйте снова.',
       )
     }
     throw new ApiError(
       'network',
-      'Не удалось связаться с API. Проверьте VITE_API_BASE и что сервер на Render запущен.',
+      API_BASE.includes('onrender.com')
+        ? 'Не удалось связаться с API на Render. Без VPN домен onrender.com часто недоступен из РФ. Локально: npm run dev:api и пустой VITE_API_BASE.'
+        : 'Не удалось связаться с API. Локально запустите npm run dev:api в отдельном терминале.',
     )
   } finally {
     window.clearTimeout(timeoutId)

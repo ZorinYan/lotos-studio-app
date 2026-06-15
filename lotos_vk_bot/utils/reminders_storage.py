@@ -1,63 +1,70 @@
-import json
-from pathlib import Path
+"""Журнал отправленных напоминаний в PostgreSQL (Neon)."""
 
-STORAGE_PATH = Path(__file__).resolve().parent.parent / "data" / "reminders.json"
+from __future__ import annotations
 
-
-def _load() -> dict:
-    if not STORAGE_PATH.exists():
-        return {}
-    with open(STORAGE_PATH, encoding="utf-8") as file:
-        return json.load(file)
-
-
-def _save(data: dict) -> None:
-    STORAGE_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with open(STORAGE_PATH, "w", encoding="utf-8") as file:
-        json.dump(data, file, ensure_ascii=False, indent=2)
-
-
-def _record_key(record_id: int, reminder_type: str) -> str:
-    return f"record:{record_id}:{reminder_type}"
-
-
-def _abonement_key(abonement_id: int, reminder_type: str) -> str:
-    return f"abonement:{abonement_id}:{reminder_type}"
+from utils.postgres import db_cursor
 
 
 def was_sent_record(record_id: int, reminder_type: str) -> bool:
-    data = _load()
-    if data.get(_record_key(record_id, reminder_type)):
-        return True
-    if reminder_type == "training_60" and data.get(str(record_id)):
-        return True
-    return False
+    with db_cursor() as cur:
+        cur.execute(
+            """
+            SELECT 1
+            FROM reminder_log
+            WHERE kind = %s AND entity_id = %s
+            LIMIT 1
+            """,
+            (reminder_type, str(record_id)),
+        )
+        return cur.fetchone() is not None
 
 
-def mark_sent_record(record_id: int, reminder_type: str) -> None:
-    data = _load()
-    data[_record_key(record_id, reminder_type)] = True
-    data.pop(str(record_id), None)
-    _save(data)
+def mark_sent_record(vk_user_id: int, record_id: int, reminder_type: str) -> None:
+    with db_cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO reminder_log (vk_user_id, kind, entity_id)
+            VALUES (%s, %s, %s)
+            ON CONFLICT (vk_user_id, kind, entity_id) DO NOTHING
+            """,
+            (vk_user_id, reminder_type, str(record_id)),
+        )
 
 
 def was_sent_abonement(abonement_id: int, reminder_type: str) -> bool:
-    return bool(_load().get(_abonement_key(abonement_id, reminder_type)))
+    with db_cursor() as cur:
+        cur.execute(
+            """
+            SELECT 1
+            FROM reminder_log
+            WHERE kind = %s AND entity_id = %s
+            LIMIT 1
+            """,
+            (reminder_type, str(abonement_id)),
+        )
+        return cur.fetchone() is not None
 
 
-def mark_sent_abonement(abonement_id: int, reminder_type: str) -> None:
-    data = _load()
-    data[_abonement_key(abonement_id, reminder_type)] = True
-    _save(data)
+def mark_sent_abonement(vk_user_id: int, abonement_id: int, reminder_type: str) -> None:
+    with db_cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO reminder_log (vk_user_id, kind, entity_id)
+            VALUES (%s, %s, %s)
+            ON CONFLICT (vk_user_id, kind, entity_id) DO NOTHING
+            """,
+            (vk_user_id, reminder_type, str(abonement_id)),
+        )
 
 
 def clear_record(record_id: int) -> None:
-    data = _load()
-    changed = False
-    prefix = f"record:{record_id}:"
-    for key in list(data.keys()):
-        if key == str(record_id) or key.startswith(prefix):
-            data.pop(key, None)
-            changed = True
-    if changed:
-        _save(data)
+    entity_id = str(record_id)
+    with db_cursor() as cur:
+        cur.execute(
+            """
+            DELETE FROM reminder_log
+            WHERE entity_id = %s
+              AND (kind LIKE 'training_%%' OR kind LIKE 'record:%%')
+            """,
+            (entity_id,),
+        )

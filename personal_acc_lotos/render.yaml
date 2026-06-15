@@ -42,6 +42,8 @@ services:
         sync: false
       - key: VK_GROUP_ID
         value: "234626072"
+      - key: DATABASE_URL
+        sync: false
       - key: VK_SERVICE_TOKEN
         sync: false
       - key: STUDIO_ADDRESS

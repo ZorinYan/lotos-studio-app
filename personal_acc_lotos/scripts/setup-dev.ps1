@@ -20,6 +20,6 @@ python -m pip install -r server/requirements.txt
 
 Write-Host ""
 Write-Host "Готово. Запуск в двух терминалах:" -ForegroundColor Green
-Write-Host "  npm run dev:api"
+Write-Host "  npm run dev:api:fresh   # если API завис — перезапуск на порту 8081"
 Write-Host "  npm run dev"
 Write-Host "  → http://localhost:5173"

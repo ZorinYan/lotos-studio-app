@@ -32,6 +32,17 @@ def _is_fresh(expires_at: float) -> bool:
     return expires_at > time.monotonic()
 
 
+def clear_all_client_caches() -> None:
+    """Полный сброс in-memory кэша клиента."""
+    with _lock:
+        _cabinet_raw.clear()
+        _usage_visits.clear()
+        _home_response.clear()
+        _cabinet_response.clear()
+        _rebook_preview.clear()
+        _records_bundle.clear()
+
+
 def clear_client_data_caches(
     vk_user_id: int,
     *,

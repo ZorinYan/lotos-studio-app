@@ -1,6 +1,7 @@
 import { ScreenSpinner, Snackbar, Switch } from '@vkontakte/vkui'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { fetchAbonements } from '../api/abonement'
+import { clearBootCache } from '../api/auth'
 import { fetchSettings, updateSettings } from '../api/settings'
 import { fetchScheduleFilters } from '../api/schedule'
 import { ApiError } from '../api/client'
@@ -40,7 +41,6 @@ export function SettingsPage({
   const [notificationsAvailable, setNotificationsAvailable] = useState(true)
   const [trainers, setTrainers] = useState<{ id: number; name: string }[]>([])
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false)
-  const [logoutLoading, setLogoutLoading] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
   const [abonementTitle, setAbonementTitle] = useState<string | null>(null)
   const [abonementRemaining, setAbonementRemaining] = useState<number | null>(null)
@@ -58,6 +58,7 @@ export function SettingsPage({
       setNotificationsEnabled(
         settings.notificationsEnabled || resolveInitialNotificationsEnabled(),
       )
+      setColorScheme(settings.colorScheme)
       setTrainers(filters.trainers)
       setNotificationsAvailable(
         isVkEnvironment() && import.meta.env.VITE_SKIP_VK_BRIDGE !== 'true',
@@ -71,11 +72,30 @@ export function SettingsPage({
     } finally {
       setLoading(false)
     }
-  }, [vkUserId])
+  }, [vkUserId, setColorScheme])
 
   useEffect(() => {
     void load()
   }, [load])
+
+  function handleThemeChange(enabled: boolean) {
+    const scheme = enabled ? 'dark' : 'light'
+    const previousScheme = enabled ? 'light' : 'dark'
+    setColorScheme(scheme)
+    clearBootCache(vkUserId)
+    setError(null)
+
+    void updateSettings(vkUserId, { colorScheme: scheme })
+      .then((saved) => {
+        if (saved.colorScheme !== scheme) {
+          throw new ApiError('save_failed', 'Тема не сохранилась на сервере')
+        }
+      })
+      .catch((err) => {
+        setColorScheme(previousScheme)
+        setError(err instanceof ApiError ? err.message : 'Не удалось сохранить тему')
+      })
+  }
 
   async function handleTrainerSelect(trainerId: number | null) {
     setSaving(true)
@@ -123,13 +143,8 @@ export function SettingsPage({
   }
 
   async function handleLogoutConfirm() {
-    setLogoutLoading(true)
-    try {
-      await onLogout()
-    } finally {
-      setLogoutLoading(false)
-      setLogoutConfirmOpen(false)
-    }
+    setLogoutConfirmOpen(false)
+    await onLogout()
   }
 
   const contactContext = useMemo(
@@ -199,10 +214,7 @@ export function SettingsPage({
                 </div>
                 <Switch
                   checked={isDark}
-                  disabled={saving}
-                  onChange={(event) =>
-                    setColorScheme(event.target.checked ? 'dark' : 'light')
-                  }
+                  onChange={(event) => handleThemeChange(event.target.checked)}
                 />
               </div>
             </section>
@@ -261,7 +273,6 @@ export function SettingsPage({
           onConfirm={() => void handleLogoutConfirm()}
           onClose={() => setLogoutConfirmOpen(false)}
           danger
-          loading={logoutLoading}
         />
       )}
 

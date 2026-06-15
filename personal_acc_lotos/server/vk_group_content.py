@@ -25,6 +25,11 @@ _feed_cache: tuple[tuple[Any, ...], float, dict[str, Any]] | None = None
 _FEED_CACHE_TTL_SEC = 900
 
 
+def clear_feed_cache() -> None:
+    global _feed_cache
+    _feed_cache = None
+
+
 def _minutes_to_hhmm(value: Any) -> str | None:
     if value is None:
         return None

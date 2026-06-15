@@ -89,7 +89,7 @@ def extract_balance_services(item: dict) -> list[dict]:
         services.append({"title": title, "remaining": remaining})
 
     if services:
-        return services
+        return _sync_services_balance(services, item)
 
     if item.get("is_united_balance"):
         remaining = abonement_balance_count(item)
@@ -107,14 +107,35 @@ def extract_balance_services(item: dict) -> list[dict]:
     return []
 
 
-def total_remaining(services: list[dict], item: dict) -> int | None:
-    fallback = abonement_balance_count(item)
+def _sync_services_balance(services: list[dict], item: dict) -> list[dict]:
+    """Согласовать остаток: в links бывает count=0, а реальный остаток — в balance_string."""
     if not services:
-        return fallback
-    total = sum(service["remaining"] for service in services)
-    if total > 0:
-        return total
-    return fallback
+        return services
+    link_total = sum(service["remaining"] for service in services)
+    if link_total > 0:
+        return services
+
+    actual = abonement_balance_count(item)
+    if actual is None or actual <= 0:
+        return services
+
+    if len(services) == 1:
+        return [{**services[0], "remaining": actual}]
+
+    if item.get("is_united_balance"):
+        label = "Общий баланс"
+        if item.get("united_balance_services_count"):
+            label = "Любые услуги абонемента"
+        return [{"title": label, "remaining": actual}]
+
+    title = str((item.get("type") or {}).get("title") or services[0]["title"])
+    return [{"title": title, "remaining": actual}]
+
+
+def total_remaining(services: list[dict], item: dict) -> int | None:
+    if services:
+        return sum(service["remaining"] for service in services)
+    return abonement_balance_count(item)
 
 
 def abonement_balance_total(item: dict) -> int | None:
