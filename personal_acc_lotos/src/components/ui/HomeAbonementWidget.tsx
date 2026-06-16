@@ -20,7 +20,7 @@ export function HomeAbonementWidget({ abonement, onOpenCabinet }: HomeAbonementW
         onKeyDown={(e) => e.key === 'Enter' && onOpenCabinet()}
       >
         <p className="home-abonement__eyebrow">Абонемент</p>
-        <h3 className="home-abonement__title">Нет активного абонемента</h3>
+        <h3 className="home-abonement__title">Нет абонемента</h3>
         <p className="home-abonement__hint">Откройте кабинет, чтобы посмотреть детали</p>
       </section>
     )

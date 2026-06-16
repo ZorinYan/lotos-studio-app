@@ -372,6 +372,17 @@ def _status_title(item: dict) -> str:
 
 
 
+def is_issued_abonement(item: dict) -> bool:
+    title = _status_title(item)
+    if any(marker in title for marker in ("выпущ", "issued", "created", "создан")):
+        return True
+    status = item.get("status") or {}
+    if isinstance(status, dict):
+        slug = str(status.get("slug") or "").lower()
+        return slug in ("created", "issued", "new", "released")
+    return False
+
+
 def is_active_abonement(item: dict) -> bool:
 
     """Активный по статусу YClients (не по нулевому остатку)."""

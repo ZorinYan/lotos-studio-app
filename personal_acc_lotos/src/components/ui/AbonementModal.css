@@ -97,6 +97,11 @@
   color: var(--lotos-success);
 }
 
+.abonement-modal__status--issued {
+  background: rgba(212, 168, 75, 0.16);
+  color: #b8860b;
+}
+
 .abonement-modal__status--frozen {
   background: var(--lotos-info-bg);
   color: var(--lotos-info);

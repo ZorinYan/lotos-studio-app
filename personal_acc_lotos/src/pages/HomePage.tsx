@@ -1,9 +1,9 @@
 import { Snackbar } from '@vkontakte/vkui'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { fetchAbonements } from '../api/abonement'
+import { fetchAbonements, type AbonementsData } from '../api/abonement'
 import { fetchHome } from '../api/home'
 import { fetchRebookSlots } from '../api/schedule'
-import { fetchStudioFeed } from '../api/studio'
+import { EMPTY_STUDIO_FEED, fetchStudioFeed } from '../api/studio'
 import { ApiError } from '../api/client'
 import { AppHeader } from '../components/AppHeader'
 import { FirstVisitTips } from '../components/ui/FirstVisitTips'
@@ -21,10 +21,38 @@ import { HomePageSkeleton } from '../components/ui/skeletons/PageSkeletons'
 import type { StudioContactTopic } from '../content/studioGuide'
 import { StudioContactSheet } from '../components/ui/StudioContactSheet'
 import type { HomeData, HomeHint, HomeHintAction } from '../types/home'
+import type { CabinetAbonement } from '../types/cabinet'
 import type { RebookData } from '../types/schedule'
 import type { StudioFeed } from '../types/studio'
 import { buildStudioRouteUrl } from '../utils/studioRoute'
 import './HomePage.css'
+
+function isInactiveAbonementStatus(status: string): boolean {
+  const text = status.toLowerCase()
+  return ['просроч', 'законч', 'архив', 'исчерп', 'замороз', 'заверш'].some((marker) =>
+    text.includes(marker),
+  )
+}
+
+function resolveHomeAbonement(
+  home: HomeData | undefined,
+  abonements: AbonementsData | undefined,
+): CabinetAbonement | null {
+  if (abonements?.primary) {
+    return abonements.primary
+  }
+  if (home?.abonement) {
+    return home.abonement
+  }
+  const items = abonements?.abonements ?? []
+  if (!items.length) {
+    return null
+  }
+  return (
+    items.find((item) => !item.isFrozen && !isInactiveAbonementStatus(item.status))
+    ?? items[0]
+  )
+}
 
 type HomePageProps = {
   vkUserId: number
@@ -66,25 +94,27 @@ export function HomePage({
 
     const [homeResult, feedResult, abonementResult] = await Promise.allSettled([
       fetchHome(vkUserId, isRefresh),
-      fetchStudioFeed(vkUserId, isRefresh),
+      fetchStudioFeed(isRefresh),
       fetchAbonements(vkUserId),
     ])
 
+    let abonementsData: AbonementsData | undefined
+    if (abonementResult.status === 'fulfilled') {
+      abonementsData = abonementResult.value
+    }
+
     if (homeResult.status === 'fulfilled') {
-      let home = homeResult.value
-      if (abonementResult.status === 'fulfilled') {
-        home = {
-          ...home,
-          abonement: abonementResult.value.primary,
-        }
-      }
-      setHomeData(home)
+      const home = homeResult.value
+      setHomeData({
+        ...home,
+        abonement: resolveHomeAbonement(home, abonementsData),
+      })
     } else {
       setHomeData(null)
-      if (isRefresh) {
-        const reason = homeResult.reason
-        setError(reason instanceof ApiError ? reason.message : 'Не удалось обновить данные')
-      }
+      const reason = homeResult.reason
+      const message =
+        reason instanceof ApiError ? reason.message : 'Не удалось загрузить данные главной'
+      setError(message)
     }
 
     if (feedResult.status === 'fulfilled') {
@@ -150,9 +180,13 @@ export function HomePage({
     ? `${firstName}, добро пожаловать`
     : 'Добро пожаловать'
   const displayStudio = homeData?.studioName ?? studioName
+  const studioFeedData = studioFeed ?? EMPTY_STUDIO_FEED
+  const storiesGroupUrl =
+    studioFeedData.place?.groupUrl
+    ?? (vkGroupId ? `https://vk.com/club${vkGroupId}` : null)
   const routeUrl = useMemo(
-    () => buildStudioRouteUrl(studioFeed?.place),
-    [studioFeed?.place],
+    () => buildStudioRouteUrl(studioFeedData.place),
+    [studioFeedData.place],
   )
 
   return (
@@ -230,15 +264,15 @@ export function HomePage({
             </RevealStack>
           )}
 
-          {!loading && studioFeed && (
+          {!loading && (
             <RevealStack className="home-page__feed">
               <HomeVkStories
-                stories={studioFeed.stories}
-                storiesAvailable={studioFeed.storiesAvailable}
-                groupUrl={studioFeed.place?.groupUrl ?? null}
+                stories={studioFeedData.stories}
+                storiesAvailable={studioFeedData.storiesAvailable || Boolean(vkGroupId)}
+                groupUrl={storiesGroupUrl}
               />
-              <HomeVkPosts posts={studioFeed.posts} />
-              <HomeStudioPlace place={studioFeed.place} />
+              <HomeVkPosts posts={studioFeedData.posts} />
+              <HomeStudioPlace place={studioFeedData.place} />
             </RevealStack>
           )}
         </main>

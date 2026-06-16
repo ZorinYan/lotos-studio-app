@@ -36,7 +36,7 @@ export function parseAttendance(raw: string): { label: string; tone: AttendanceT
   return { label: cleanLabel(raw) || 'Запись', tone: 'neutral' }
 }
 
-export type AbonementStatusTone = 'active' | 'frozen' | 'expired' | 'neutral'
+export type AbonementStatusTone = 'active' | 'frozen' | 'expired' | 'issued' | 'neutral'
 
 export function parseAbonementStatus(status: string): { label: string; tone: AbonementStatusTone } {
   const text = status.toLowerCase()
@@ -44,6 +44,7 @@ export function parseAbonementStatus(status: string): { label: string; tone: Abo
   if (text.includes('просроч') || text.includes('законч') || text.includes('архив')) {
     return { label: status, tone: 'expired' }
   }
+  if (text.includes('выпущ')) return { label: status, tone: 'issued' }
   if (text.includes('актив')) return { label: status, tone: 'active' }
   return { label: status, tone: 'neutral' }
 }

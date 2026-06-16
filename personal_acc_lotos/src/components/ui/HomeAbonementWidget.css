@@ -52,6 +52,11 @@
   color: var(--lotos-success);
 }
 
+.home-abonement__status--issued {
+  background: rgba(212, 168, 75, 0.16);
+  color: #b8860b;
+}
+
 .home-abonement__status--frozen {
   background: var(--lotos-info-bg);
   color: var(--lotos-info);

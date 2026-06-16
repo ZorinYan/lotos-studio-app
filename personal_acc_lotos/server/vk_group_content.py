@@ -359,8 +359,8 @@ def load_studio_feed(config: MiniAppConfig, *, force_refresh: bool = False) -> d
 
     posts: list[dict[str, Any]] = []
     stories: list[dict[str, Any]] = []
-    place: dict[str, Any] | None = None
     stories_available = bool(config.vk_group_id)
+    place = _load_group_info(config)
 
     if config.vk_group_id:
         if config.vk_service_token:
@@ -371,8 +371,6 @@ def load_studio_feed(config: MiniAppConfig, *, force_refresh: bool = False) -> d
 
         if config.vk_group_token:
             stories, stories_available = _load_stories(config)
-
-        place = _load_group_info(config)
 
     payload = {
         "posts": posts,

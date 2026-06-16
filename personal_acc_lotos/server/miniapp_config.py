@@ -69,7 +69,12 @@ def load_config() -> MiniAppConfig:
 
     vk_app_secret = os.getenv("VK_APP_SECRET", "")
     skip_vk_sign = os.getenv("SKIP_VK_SIGN", "").lower() in ("1", "true", "yes")
-    if not vk_app_secret:
+    skip_vk_sign_env = os.getenv("SKIP_VK_SIGN", "").strip().lower()
+    if skip_vk_sign_env in ("0", "false", "no"):
+        skip_vk_sign = False
+    elif not vk_app_secret:
+        skip_vk_sign = True
+    elif any("localhost" in origin or "127.0.0.1" in origin for origin in origins):
         skip_vk_sign = True
 
     return MiniAppConfig(

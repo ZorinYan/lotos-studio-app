@@ -519,14 +519,7 @@ def schedule_book(body: BookScheduleRequest, launch: dict[str, str] = Depends(vk
 
 
 @app.get("/api/studio/feed")
-def studio_feed(
-    vk_user_id: int,
-    refresh: bool = False,
-    launch: dict[str, str] = Depends(vk_launch_from_header),
-):
-    if vk_user_id <= 0:
-        raise HTTPException(status_code=400, detail="Некорректный vk_user_id")
-    _guard(vk_user_id, launch)
+def studio_feed(refresh: bool = False):
     return load_studio_feed(_cfg(), force_refresh=refresh)
 
 

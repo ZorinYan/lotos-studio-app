@@ -11,6 +11,7 @@ from yclients.abonement_utils import (
     abonement_balance_count,
     abonement_expiry_date,
     is_active_abonement,
+    is_issued_abonement,
 )
 from yclients.formatters import status_icon
 from yclients.formatters_cabinet import _service_titles, _staff_name
@@ -80,7 +81,7 @@ def extract_balance_services(item: dict) -> list[dict]:
             parsed_total is not None
             and parsed_total > 0
             and link_count == 1
-            and is_active_abonement(item)
+            and (is_active_abonement(item) or is_issued_abonement(item))
         ):
             # balance_string — только если у единственной услуги нет count в link
             remaining = parsed_total
@@ -180,28 +181,68 @@ def serialize_usage_visit(visit: dict) -> dict:
     }
 
 
+def _status_text(item: dict) -> str:
+    return str(item.get("status", "")).lower()
+
+
+def _is_primary_inactive(item: dict) -> bool:
+    if item.get("isFrozen"):
+        return True
+    inactive_markers = (
+        "просроч",
+        "законч",
+        "архив",
+        "исчерп",
+        "использован",
+        "неактив",
+        "закрыт",
+        "заверш",
+        "замороз",
+    )
+    status = _status_text(item)
+    return any(marker in status for marker in inactive_markers)
+
+
+def _is_issued_status(item: dict) -> bool:
+    status = _status_text(item)
+    return any(marker in status for marker in ("выпущ", "issued", "created", "создан"))
+
+
+def _is_active_status(item: dict) -> bool:
+    status = _status_text(item)
+    return "актив" in status or _is_issued_status(item)
+
+
+def _primary_balance(item: dict) -> int | None:
+    remaining = item.get("balanceRemaining")
+    if remaining is not None and remaining > 0:
+        return remaining
+    if _is_issued_status(item):
+        total = item.get("balanceTotal")
+        if total is not None and total > 0:
+            return total
+    return remaining
+
+
 def pick_primary_abonement(abonements: list[dict]) -> dict | None:
-    """Первый активный абонемент с ненулевым остатком (как в интерфейсе YClients)."""
+    """Абонемент для главной: активный или выпущенный, без просроченных."""
     if not abonements:
         return None
 
-    inactive_markers = ("просроч", "законч", "архив", "исчерп", "замороз")
+    candidates = [item for item in abonements if not _is_primary_inactive(item)]
+    if not candidates:
+        return abonements[0]
 
-    for item in abonements:
-        if item.get("isFrozen"):
-            continue
-        status = str(item.get("status", "")).lower()
-        if any(marker in status for marker in inactive_markers):
-            continue
-        remaining = item.get("balanceRemaining")
-        if remaining is not None and remaining > 0:
+    for item in candidates:
+        balance = _primary_balance(item)
+        if balance is not None and balance > 0:
             return item
 
-    for item in abonements:
-        if not item.get("isFrozen"):
+    for item in candidates:
+        if _is_active_status(item):
             return item
 
-    return abonements[0]
+    return candidates[0]
 
 
 def serialize_abonement(item: dict) -> dict:
@@ -211,12 +252,16 @@ def serialize_abonement(item: dict) -> dict:
     services = extract_balance_services(item)
     abonement_type = item.get("type") or {}
     expiry_dt = abonement_expiry_date(item)
+    remaining = total_remaining(services, item)
+    total = abonement_balance_total(item)
+    if (remaining is None or remaining == 0) and is_issued_abonement(item):
+        remaining = total
 
     return {
         "id": item.get("id"),
         "title": abonement_type.get("title", "Абонемент"),
-        "balanceRemaining": total_remaining(services, item),
-        "balanceTotal": abonement_balance_total(item),
+        "balanceRemaining": remaining,
+        "balanceTotal": total,
         "services": services,
         "isUnitedBalance": bool(item.get("is_united_balance")),
         "status": status_title,

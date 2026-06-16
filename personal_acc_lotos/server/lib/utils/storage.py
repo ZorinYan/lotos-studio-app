@@ -136,6 +136,11 @@ def get_user_auth_state(vk_user_id: int) -> dict:
 
 
 def update_user_entry(vk_user_id: int, **fields) -> dict:
+    from dev_impersonation import dev_impersonation_skips_db_writes
+
+    if dev_impersonation_skips_db_writes(vk_user_id):
+        return get_user_entry(vk_user_id)
+
     vk_user_id = _resolve_storage_vk_user_id(vk_user_id)
     if not fields:
         return get_user_entry(vk_user_id)

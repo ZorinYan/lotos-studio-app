@@ -41,3 +41,20 @@ def clear_session(vk_user_id: int) -> None:
 def clear_all_sessions() -> None:
     with _lock:
         _sessions.clear()
+
+
+def dev_impersonation_skips_db_writes(vk_user_id: int) -> bool:
+    """Разработчик смотрит клиента без строки в users — не пишем в БД."""
+    if not is_developer(vk_user_id):
+        return False
+    session = get_session(vk_user_id)
+    if not session:
+        return False
+
+    def query(cur):
+        cur.execute("SELECT 1 FROM users WHERE phone = %s LIMIT 1", (session["phone"],))
+        return cur.fetchone() is not None
+
+    from utils.postgres import run_db
+
+    return not run_db(query, commit=False)
