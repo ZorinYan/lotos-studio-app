@@ -48,11 +48,6 @@ export type BootResponse = {
   prefs?: UserPrefs
 }
 
-const DEFAULT_PREFS: UserPrefs = {
-  colorScheme: 'light',
-  welcomeBannerSeen: false,
-}
-
 function normalizePrefs(prefs?: Partial<UserPrefs> | null): UserPrefs {
   return {
     colorScheme: prefs?.colorScheme === 'dark' ? 'dark' : 'light',

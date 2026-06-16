@@ -2,7 +2,7 @@ import { AppRoot, ConfigProvider, Placeholder, ScreenSpinner } from '@vkontakte/
 import '@vkontakte/vkui/dist/vkui.css'
 import './styles/lotos-theme.css'
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
-import { clearBootCache, fetchBoot, fetchPublicConfig, logout, type AuthSessionPayload, type AuthStatus, type PublicConfig, type UserPrefs, type VerifyResponse } from './api/auth'
+import { clearBootCache, fetchBoot, fetchPublicConfig, logout, type AuthSessionPayload, type AuthStatus, type PublicConfig, type UserPrefs } from './api/auth'
 import { fetchSettings } from './api/settings'
 import { ApiError } from './api/client'
 import { registerSessionExpiredHandler } from './api/session'
