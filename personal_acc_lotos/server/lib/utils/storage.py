@@ -92,7 +92,42 @@ def _fetch_by_phone(phone: str) -> dict | None:
     return fetch_row_by_phone(phone)
 
 
+def _dev_impersonation_entry(vk_user_id: int) -> dict | None:
+    from dev_impersonation import get_session, is_developer
+
+    if not is_developer(vk_user_id):
+        return None
+    session = get_session(vk_user_id)
+    if not session:
+        return None
+    phone = session["phone"]
+    row = fetch_row_by_phone(phone)
+    if row:
+        return _row_to_entry(row)
+    entry: dict[str, Any] = {"phone": phone, "logged_in": True}
+    if session.get("client_name"):
+        entry["client_name"] = session["client_name"]
+    return entry
+
+
+def _resolve_storage_vk_user_id(vk_user_id: int) -> int:
+    from dev_impersonation import get_session, is_developer
+
+    if not is_developer(vk_user_id):
+        return vk_user_id
+    session = get_session(vk_user_id)
+    if not session:
+        return vk_user_id
+    row = fetch_row_by_phone(session["phone"])
+    if row:
+        return int(row["vk_user_id"])
+    return vk_user_id
+
+
 def get_user_entry(vk_user_id: int) -> dict:
+    impersonated = _dev_impersonation_entry(vk_user_id)
+    if impersonated is not None:
+        return impersonated
     return _row_to_entry(_fetch_row(vk_user_id))
 
 
@@ -101,6 +136,7 @@ def get_user_auth_state(vk_user_id: int) -> dict:
 
 
 def update_user_entry(vk_user_id: int, **fields) -> dict:
+    vk_user_id = _resolve_storage_vk_user_id(vk_user_id)
     if not fields:
         return get_user_entry(vk_user_id)
 
@@ -162,7 +198,11 @@ def update_user_entry(vk_user_id: int, **fields) -> dict:
 
 
 def get_phone(vk_user_id: int) -> str | None:
-    phone = get_user_entry(vk_user_id).get("phone")
+    impersonated = _dev_impersonation_entry(vk_user_id)
+    if impersonated is not None:
+        phone = impersonated.get("phone")
+        return phone if phone else None
+    phone = _row_to_entry(_fetch_row(vk_user_id)).get("phone")
     return phone if phone else None
 
 

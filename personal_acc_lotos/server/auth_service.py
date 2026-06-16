@@ -20,6 +20,9 @@ ensure_lib_path()
 from yclients.formatters_cabinet import _client_name  # noqa: E402
 from utils.client_name import client_has_surname, client_names_match  # noqa: E402
 from utils.phone import format_phone_display, normalize_phone  # noqa: E402
+from dev_impersonation import clear_session as clear_dev_session
+from dev_impersonation import get_session as get_dev_session
+from dev_impersonation import is_developer, set_session as set_dev_session
 from utils import storage  # noqa: E402
 
 _PENDING_TTL_SEC = 600
@@ -118,6 +121,16 @@ def _is_authenticated_row(row: dict) -> bool:
 
 
 def get_auth_status(vk_user_id: int, config: MiniAppConfig | None = None) -> AuthStatus:
+    if is_developer(vk_user_id):
+        session = get_dev_session(vk_user_id)
+        if session:
+            phone = session["phone"]
+            return AuthStatus(
+                authenticated=True,
+                phone=phone,
+                phone_display=format_phone_display(phone),
+                client_name=session.get("client_name") or None,
+            )
     return auth_status_from_row(storage.get_user_auth_state(vk_user_id))
 
 
@@ -143,7 +156,7 @@ def get_boot_state(vk_user_id: int) -> tuple[AuthStatus, dict]:
         "colorScheme": scheme,
         "welcomeBannerSeen": bool(row.get("welcome_banner_seen")),
     }
-    return auth_status_from_row(row), prefs
+    return get_auth_status(vk_user_id), prefs
 
 
 def check_phone(vk_user_id: int, raw_phone: str, config: MiniAppConfig) -> PhoneCheckResult:
@@ -164,7 +177,7 @@ def check_phone(vk_user_id: int, raw_phone: str, config: MiniAppConfig) -> Phone
 
     _remember_phone_step(vk_user_id, phone, profile)
 
-    if storage.has_password_for_phone(phone):
+    if not is_developer(vk_user_id) and storage.has_password_for_phone(phone):
         return PhoneCheckResult(step="password", phone=phone, requires_surname=False)
 
     return PhoneCheckResult(
@@ -206,16 +219,27 @@ def verify_name(
         )
 
     client_name = _client_name(profile)
+    _forget_phone_step(vk_user_id)
+
+    if is_developer(vk_user_id):
+        set_dev_session(vk_user_id, normalized_phone, client_name)
+        return VerifyResult(
+            phone=normalized_phone,
+            phone_display=format_phone_display(normalized_phone),
+            needs_password=False,
+            client_name=client_name,
+        )
+
     try:
         storage.upsert_verified_user(vk_user_id, normalized_phone, client_name)
     except RuntimeError as error:
         raise AuthError("phone_already_linked", str(error)) from error
 
-    _forget_phone_step(vk_user_id)
     return VerifyResult(
         phone=normalized_phone,
         phone_display=format_phone_display(normalized_phone),
         needs_password=True,
+        client_name=client_name,
     )
 
 
@@ -289,4 +313,7 @@ def logout(vk_user_id: int) -> None:
 
     _forget_phone_step(vk_user_id)
     invalidate_client_cache(vk_user_id=vk_user_id)
+    if is_developer(vk_user_id):
+        clear_dev_session(vk_user_id)
+        return
     storage.clear_session(vk_user_id)

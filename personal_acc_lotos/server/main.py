@@ -278,6 +278,7 @@ def auth_verify(body: VerifyRequest, launch: dict[str, str] = Depends(vk_launch_
         "phone": result.phone,
         "phoneDisplay": result.phone_display,
         "needsPassword": result.needs_password,
+        "clientName": result.client_name,
     }
 
 

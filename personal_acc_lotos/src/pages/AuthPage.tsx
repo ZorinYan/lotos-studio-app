@@ -89,7 +89,7 @@ export function AuthPage({
         resetPasswordFields()
         setStep('setPassword')
       } else {
-        onAuthenticated()
+        await onAuthenticated(sessionFromVerify(result))
       }
     } catch (err) {
       if (err instanceof ApiError && err.code === 'session_expired') {
