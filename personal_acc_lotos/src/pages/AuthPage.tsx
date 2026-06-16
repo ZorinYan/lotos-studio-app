@@ -185,7 +185,16 @@ export function AuthPage({
       </div>
 
       {step === 'phone' && (
-        <section className="auth-page__card lotos-card">
+        <form
+          className="auth-page__card lotos-card"
+          onSubmit={(event) => {
+            event.preventDefault()
+            if (submitting || sessionChecking || !phoneInput.trim()) {
+              return
+            }
+            void handlePhoneSubmit()
+          }}
+        >
           <p className="auth-page__step">Шаг 1</p>
           <h2 className="auth-page__section-title">Вход по номеру</h2>
           {sessionChecking && (
@@ -214,10 +223,9 @@ export function AuthPage({
             />
           </FormItem>
           <button
-            type="button"
+            type="submit"
             className="lotos-btn lotos-btn--primary lotos-btn--stretched"
             disabled={submitting || sessionChecking || !phoneInput.trim()}
-            onClick={() => void handlePhoneSubmit()}
           >
             {sessionChecking ? 'Подключаемся…' : submitting ? 'Проверяем…' : 'Продолжить'}
           </button>
@@ -231,11 +239,20 @@ export function AuthPage({
               Смотреть расписание и записаться
             </button>
           )}
-        </section>
+        </form>
       )}
 
       {step === 'password' && (
-        <section className="auth-page__card lotos-card">
+        <form
+          className="auth-page__card lotos-card"
+          onSubmit={(event) => {
+            event.preventDefault()
+            if (submitting || passwordInput.length < 6) {
+              return
+            }
+            void handlePasswordSubmit()
+          }}
+        >
           <p className="auth-page__step">Шаг 2</p>
           <h2 className="auth-page__section-title">Ваш пароль</h2>
           <p className="auth-page__hint">
@@ -264,11 +281,10 @@ export function AuthPage({
               Назад
             </button>
             <button
-              type="button"
+              type="submit"
               className="lotos-btn lotos-btn--primary"
               style={{ flex: 1 }}
               disabled={submitting || passwordInput.length < 6}
-              onClick={() => void handlePasswordSubmit()}
             >
               {submitting ? 'Входим…' : 'Войти'}
             </button>
@@ -285,11 +301,20 @@ export function AuthPage({
           >
             Забыли пароль? Войти по имени
           </button>
-        </section>
+        </form>
       )}
 
       {step === 'name' && (
-        <section className="auth-page__card lotos-card">
+        <form
+          className="auth-page__card lotos-card"
+          onSubmit={(event) => {
+            event.preventDefault()
+            if (submitting || !nameInput.trim()) {
+              return
+            }
+            void handleNameSubmit()
+          }}
+        >
           <p className="auth-page__step">Подтверждение</p>
           <h2 className="auth-page__section-title">Имя в студии</h2>
           <p className="auth-page__hint">
@@ -322,20 +347,32 @@ export function AuthPage({
               Назад
             </button>
             <button
-              type="button"
+              type="submit"
               className="lotos-btn lotos-btn--primary"
               style={{ flex: 1 }}
               disabled={submitting || !nameInput.trim()}
-              onClick={() => void handleNameSubmit()}
             >
               {submitting ? 'Проверяем…' : 'Продолжить'}
             </button>
           </div>
-        </section>
+        </form>
       )}
 
       {step === 'setPassword' && (
-        <section className="auth-page__card lotos-card">
+        <form
+          className="auth-page__card lotos-card"
+          onSubmit={(event) => {
+            event.preventDefault()
+            if (
+              submitting
+              || passwordInput.length < 6
+              || passwordConfirmInput.length < 6
+            ) {
+              return
+            }
+            void handleSetPasswordSubmit()
+          }}
+        >
           <p className="auth-page__step">Регистрация</p>
           <h2 className="auth-page__section-title">Придумайте пароль</h2>
           <p className="auth-page__hint">
@@ -362,18 +399,17 @@ export function AuthPage({
             />
           </FormItem>
           <button
-            type="button"
+            type="submit"
             className="lotos-btn lotos-btn--primary lotos-btn--stretched"
             disabled={
               submitting
               || passwordInput.length < 6
               || passwordConfirmInput.length < 6
             }
-            onClick={() => void handleSetPasswordSubmit()}
           >
             {submitting ? 'Сохраняем…' : 'Сохранить и войти'}
           </button>
-        </section>
+        </form>
       )}
 
       {error && (
