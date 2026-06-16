@@ -1,0 +1,43 @@
+.staff-schedule-modal__hint {
+  margin: 0;
+  text-align: center;
+}
+
+.staff-schedule-modal__hint--muted {
+  color: var(--lotos-text-muted);
+}
+
+.staff-schedule-modal__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.staff-schedule-modal__row {
+  padding: 12px 14px;
+  border-radius: var(--lotos-radius-md);
+  background: var(--lotos-surface);
+  border: 1px solid var(--lotos-border);
+}
+
+.staff-schedule-modal__name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--lotos-text);
+  margin-bottom: 6px;
+}
+
+.staff-schedule-modal__phone,
+.staff-schedule-modal__visits {
+  font-size: 13px;
+  color: var(--lotos-text-secondary);
+  font-weight: 600;
+}
+
+.staff-schedule-modal__phone {
+  margin-bottom: 4px;
+}
+

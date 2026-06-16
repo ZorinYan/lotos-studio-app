@@ -2,7 +2,7 @@ import { AppRoot, ConfigProvider, Placeholder, ScreenSpinner } from '@vkontakte/
 import '@vkontakte/vkui/dist/vkui.css'
 import './styles/lotos-theme.css'
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
-import { clearBootCache, fetchBoot, fetchPublicConfig, logout, type AuthSessionPayload, type AuthStatus, type PublicConfig, type UserPrefs } from './api/auth'
+import { clearBootCache, fetchBoot, fetchPublicConfig, logout, type AuthSessionPayload, type AuthStatus, type PublicConfig, type UserPrefs, type UserRole } from './api/auth'
 import { fetchSettings } from './api/settings'
 import { ApiError } from './api/client'
 import { registerSessionExpiredHandler } from './api/session'
@@ -15,6 +15,9 @@ import { HomePage } from './pages/HomePage'
 import { RecordsPage } from './pages/RecordsPage'
 import { SchedulePage } from './pages/SchedulePage'
 import { SettingsPage } from './pages/SettingsPage'
+import { StaffHomePage } from './pages/StaffHomePage'
+import { StaffSettingsPage } from './pages/StaffSettingsPage'
+import { StaffSchedulePage } from './pages/StaffSchedulePage'
 import { LotosThemeProvider, useLotosTheme } from './hooks/useLotosTheme'
 import { useVkApp } from './hooks/useVkApp'
 import { markWelcomeBannerSeen } from './utils/welcomeBanner'
@@ -41,6 +44,9 @@ function AppContent() {
   const [config, setConfig] = useState<PublicConfig | null>(null)
   const [phoneDisplay, setPhoneDisplay] = useState<string | null>(null)
   const [clientName, setClientName] = useState<string | null>(null)
+  const [staffName, setStaffName] = useState<string | null>(null)
+  const [staffId, setStaffId] = useState<number | null>(null)
+  const [userRole, setUserRole] = useState<UserRole>('client')
   const [favoriteTrainerId, setFavoriteTrainerId] = useState<number | null>(null)
   const [bootError, setBootError] = useState<string | null>(null)
   const [sessionChecking, setSessionChecking] = useState(true)
@@ -71,14 +77,21 @@ function AppContent() {
   }, [setColorScheme])
 
   const applySession = useCallback((status: AuthStatus) => {
+    const role = status.role ?? 'client'
+    setUserRole(role)
     setAuthenticated(status.authenticated)
     if (status.authenticated) {
       setPhoneDisplay(status.phoneDisplay)
       setClientName(status.clientName)
+      setStaffName(status.staffName ?? null)
+      setStaffId(status.staffId ?? null)
       setGuestSchedule(false)
     } else {
       setPhoneDisplay(null)
       setClientName(null)
+      setStaffName(null)
+      setUserRole('client')
+      setStaffId(null)
       setFavoriteTrainerId(null)
     }
   }, [])
@@ -90,10 +103,12 @@ function AppContent() {
     setColorScheme(boot.prefs.colorScheme)
     if (boot.auth.authenticated) {
       setScreen('home')
-      if (!boot.prefs.welcomeBannerSeen) {
+      if (boot.auth.role !== 'staff' && !boot.prefs.welcomeBannerSeen) {
         setWelcomeOpen(true)
       }
-      void loadUserSettings(userId)
+      if (boot.auth.role !== 'staff') {
+        void loadUserSettings(userId)
+      }
     } else {
       setScreen('auth')
     }
@@ -145,19 +160,25 @@ function AppContent() {
     if (!vkUser) return
 
     if (session) {
+      const role = session.role ?? 'client'
       setAuthenticated(true)
+      setUserRole(role)
       setPhoneDisplay(session.phoneDisplay)
       setClientName(session.clientName ?? null)
+      setStaffName(session.staffName ?? null)
+      setStaffId(session.staffId ?? null)
       setGuestSchedule(false)
       setBootError(null)
       setScreen('home')
-      void (async () => {
-        clearBootCache(vkUser.id)
-        const settings = await loadUserSettings(vkUser.id)
-        if (settings && !settings.welcomeBannerSeen) {
-          setWelcomeOpen(true)
-        }
-      })()
+      if (role === 'client') {
+        void (async () => {
+          clearBootCache(vkUser.id)
+          const settings = await loadUserSettings(vkUser.id)
+          if (settings && !settings.welcomeBannerSeen) {
+            setWelcomeOpen(true)
+          }
+        })()
+      }
       return
     }
 
@@ -171,8 +192,10 @@ function AppContent() {
         return
       }
       setColorScheme(boot.prefs.colorScheme)
-      await loadUserSettings(vkUser.id)
-      applyUserPrefs(boot.prefs, { showWelcome: true })
+      if (boot.auth.role !== 'staff') {
+        await loadUserSettings(vkUser.id)
+        applyUserPrefs(boot.prefs, { showWelcome: true })
+      }
       setScreen('home')
     } catch (err) {
       setBootError(
@@ -211,6 +234,9 @@ function AppContent() {
     clearBootCache(vkUser.id)
     setPhoneDisplay(null)
     setClientName(null)
+    setStaffName(null)
+    setStaffId(null)
+    setUserRole('client')
     setFavoriteTrainerId(null)
     setAuthenticated(false)
     setGuestSchedule(false)
@@ -232,6 +258,9 @@ function AppContent() {
       }
       setPhoneDisplay(null)
       setClientName(null)
+      setStaffName(null)
+      setStaffId(null)
+      setUserRole('client')
       setFavoriteTrainerId(null)
       setAuthenticated(false)
       setGuestSchedule(false)
@@ -274,7 +303,8 @@ function AppContent() {
   }
 
   const user = vkUser
-  const showTabShell = authenticated && !guestSchedule && TAB_SCREENS.includes(screen as AppTab)
+  const tabsForRole: AppTab[] = userRole === 'staff' ? ['home', 'schedule', 'settings'] : TAB_SCREENS
+  const showTabShell = authenticated && !guestSchedule && tabsForRole.includes(screen as AppTab)
 
   function renderScreen() {
     if (screen === 'auth') {
@@ -295,6 +325,18 @@ function AppContent() {
     }
 
     if (screen === 'home') {
+      if (userRole === 'staff') {
+        return (
+          <StaffHomePage
+            vkUserId={user.id}
+            studioName={config?.studioName ?? 'Lotos Studio'}
+            staffName={staffName}
+            phoneDisplay={phoneDisplay}
+            onLogout={handleLogout}
+          />
+        )
+      }
+
       return (
         <HomePage
           vkUserId={user.id}
@@ -321,6 +363,17 @@ function AppContent() {
     }
 
     if (screen === 'schedule') {
+      if (userRole === 'staff') {
+        return (
+          <StaffSchedulePage
+            vkUserId={user.id}
+            staffId={staffId}
+            studioName={config?.studioName ?? 'Lotos Studio'}
+            onBack={undefined}
+          />
+        )
+      }
+
       return (
         <SchedulePage
           vkUserId={user.id}
@@ -339,6 +392,10 @@ function AppContent() {
     }
 
     if (screen === 'settings') {
+      if (userRole === 'staff') {
+        return <StaffSettingsPage vkUserId={user.id} />
+      }
+
       return (
         <SettingsPage
           vkUserId={user.id}
@@ -356,13 +413,17 @@ function AppContent() {
   return (
     <LotosAppShell>
       {showTabShell ? (
-        <AppTabShell activeTab={screen as AppTab} onNavigate={handleTabNavigate}>
+        <AppTabShell
+          activeTab={screen as AppTab}
+          onNavigate={handleTabNavigate}
+          tabs={tabsForRole}
+        >
           {renderScreen()}
         </AppTabShell>
       ) : (
         renderScreen()
       )}
-      {welcomeOpen && authenticated && (
+      {welcomeOpen && authenticated && userRole === 'client' && (
         <WelcomeBanner
           clientName={clientName}
           studioName={config?.studioName ?? 'Lotos Studio'}

@@ -1,10 +1,17 @@
 import { apiFetch, AUTH_TIMEOUT_MS } from './client'
 
+export type UserRole = 'client' | 'staff'
+
 export type AuthStatus = {
   authenticated: boolean
+  role?: UserRole
   phone: string | null
   phoneDisplay: string | null
   clientName: string | null
+  staffName?: string | null
+  staffId?: number | null
+  specialization?: string | null
+  positionTitle?: string | null
 }
 
 export type PublicConfig = {
@@ -14,12 +21,18 @@ export type PublicConfig = {
   vkGroupId?: number
 }
 
-export type AuthStep = 'name' | 'password'
+export type AuthStep = 'name' | 'password' | 'authenticated' | 'setPassword'
 
 export type PhoneCheckResponse = {
   step: AuthStep
   phone: string
+  accountType?: UserRole
   requiresSurname: boolean
+  phoneDisplay?: string | null
+  clientName?: string | null
+  staffName?: string | null
+  specialization?: string | null
+  positionTitle?: string | null
 }
 
 export type VerifyResponse = {
@@ -35,6 +48,11 @@ export type AuthSessionPayload = {
   phone: string
   phoneDisplay: string
   clientName?: string | null
+  role?: UserRole
+  staffName?: string | null
+  staffId?: number | null
+  specialization?: string | null
+  positionTitle?: string | null
 }
 
 export type UserPrefs = {

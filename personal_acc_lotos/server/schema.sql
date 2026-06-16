@@ -29,6 +29,32 @@ CREATE TABLE IF NOT EXISTS reminder_log (
 CREATE INDEX IF NOT EXISTS idx_reminder_log_entity
   ON reminder_log (kind, entity_id);
 
+-- Аккаунты сотрудников студии (отдельно от клиентских users).
+CREATE TABLE IF NOT EXISTS staff_accounts (
+  phone                 VARCHAR(11) PRIMARY KEY,
+  yclients_staff_id     INTEGER NOT NULL,
+  yclients_user_id      INTEGER,
+  staff_name            TEXT NOT NULL,
+  specialization        TEXT,
+  position_title        TEXT,
+  vk_user_id            BIGINT,
+  password_hash         TEXT,
+  logged_in             BOOLEAN DEFAULT FALSE,
+  color_scheme          TEXT DEFAULT 'light',
+  linked_at             TIMESTAMPTZ DEFAULT NOW(),
+  last_login_at         TIMESTAMPTZ
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_staff_accounts_yclients_staff_id
+  ON staff_accounts (yclients_staff_id);
+
+CREATE INDEX IF NOT EXISTS idx_staff_accounts_vk_user_id
+  ON staff_accounts (vk_user_id);
+
+-- Для уже созданной БД:
+-- (выполнить вручную в Supabase SQL editor)
+-- ALTER TABLE staff_accounts ADD COLUMN IF NOT EXISTS color_scheme TEXT DEFAULT 'light';
+
 -- Для уже созданной таблицы users:
 -- ALTER TABLE users ADD COLUMN IF NOT EXISTS logged_in BOOLEAN DEFAULT FALSE;
 -- ALTER TABLE users ADD COLUMN IF NOT EXISTS color_scheme TEXT DEFAULT 'light';

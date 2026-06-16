@@ -12,6 +12,7 @@ export type AppTab = 'home' | 'schedule' | 'cabinet' | 'records' | 'settings'
 type BottomNavProps = {
   active: AppTab
   onSelect: (tab: AppTab) => void
+  tabs?: AppTab[]
 }
 
 const TABS: { id: AppTab; label: string }[] = [
@@ -44,10 +45,15 @@ function TabIcon({ tab }: { tab: AppTab }) {
   }
 }
 
-export function BottomNav({ active, onSelect }: BottomNavProps) {
+export function BottomNav({ active, onSelect, tabs }: BottomNavProps) {
+  const visibleTabs = tabs ? TABS.filter((t) => tabs.includes(t.id)) : TABS
   return (
-    <nav className="bottom-nav" aria-label="Основное меню">
-      {TABS.map(({ id, label }) => {
+    <nav
+      className="bottom-nav"
+      aria-label="Основное меню"
+      style={{ ['--tabs-count' as any]: visibleTabs.length }}
+    >
+      {visibleTabs.map(({ id, label }) => {
         const isActive = active === id
         return (
           <button

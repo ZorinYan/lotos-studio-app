@@ -19,6 +19,14 @@ from auth_service import (
     verify_name,
     verify_password,
 )
+from staff_auth_service import (
+    StaffAuthError,
+    set_staff_password,
+    verify_staff_password,
+)
+from staff_home_api import load_staff_home
+from staff_settings_api import load_staff_settings, update_staff_settings
+from staff_schedule_api import load_staff_activity_clients
 from vk_auth import guard_vk_user, vk_launch_from_header
 from booking_api import book_schedule_class, check_booking_eligibility, check_guest_booking
 from cabinet_api import load_cabinet
@@ -170,8 +178,41 @@ class SettingsResponse(BaseModel):
     welcomeBannerSeen: bool = False
 
 
+class StaffSettingsResponse(BaseModel):
+    staffName: str | None = None
+    phoneDisplay: str | None = None
+    colorScheme: str = "light"
+
+
+class StaffSettingsUpdateRequest(VkUserRequest):
+    model_config = ConfigDict(populate_by_name=True)
+
+    color_scheme: str | None = Field(
+        default=None,
+        pattern="^(light|dark)$",
+        validation_alias=AliasChoices("color_scheme", "colorScheme"),
+    )
+
+
+class StaffActivityClientsRequest(VkUserRequest):
+    model_config = ConfigDict(populate_by_name=True)
+
+    activity_id: int = Field(gt=0)
+    activity_date: str = Field(min_length=10, max_length=10)
+
+
 def _cfg() -> MiniAppConfig:
     return config
+
+
+def _handle_staff_auth_error(error: StaffAuthError, *, protected: bool = False) -> HTTPException:
+    status = 400
+    if protected and error.code in {"not_authenticated"}:
+        status = 401
+    return HTTPException(
+        status_code=status,
+        detail={"code": error.code, "message": str(error)},
+    )
 
 
 def _handle_auth_error(error: AuthError, *, protected: bool = False) -> HTTPException:
@@ -215,9 +256,14 @@ def boot(vk_user_id: int, launch: dict[str, str] = Depends(vk_launch_from_header
         "config": config_payload,
         "auth": {
             "authenticated": status.authenticated,
+            "role": status.role,
             "phone": status.phone,
             "phoneDisplay": status.phone_display,
             "clientName": status.client_name,
+            "staffName": status.staff_name,
+            "staffId": status.staff_id,
+            "specialization": status.specialization,
+            "positionTitle": status.position_title,
         },
         "prefs": prefs,
     }
@@ -244,9 +290,14 @@ def auth_status(vk_user_id: int, launch: dict[str, str] = Depends(vk_launch_from
     status = get_auth_status(vk_user_id)
     return {
         "authenticated": status.authenticated,
+        "role": status.role,
         "phone": status.phone,
         "phoneDisplay": status.phone_display,
         "clientName": status.client_name,
+        "staffName": status.staff_name,
+        "staffId": status.staff_id,
+        "specialization": status.specialization,
+        "positionTitle": status.position_title,
     }
 
 
@@ -261,7 +312,13 @@ def auth_phone(body: PhoneRequest, launch: dict[str, str] = Depends(vk_launch_fr
     return {
         "step": result.step,
         "phone": result.phone,
+        "accountType": result.account_type,
         "requiresSurname": result.requires_surname,
+        "phoneDisplay": result.phone_display,
+        "clientName": result.client_name,
+        "staffName": result.staff_name,
+        "specialization": result.specialization,
+        "positionTitle": result.position_title,
     }
 
 
@@ -327,6 +384,110 @@ def auth_password_set(
         "clientName": result.client_name,
         "needsPassword": result.needs_password,
     }
+
+
+@app.post("/api/staff/auth/password/verify")
+def staff_auth_password_verify(
+    body: PasswordVerifyRequest,
+    launch: dict[str, str] = Depends(vk_launch_from_header),
+):
+    _guard(body.vk_user_id, launch)
+    try:
+        result = verify_staff_password(body.vk_user_id, body.phone, body.password, _cfg())
+    except StaffAuthError as error:
+        raise _handle_staff_auth_error(error) from error
+
+    return {
+        "success": True,
+        "authenticated": True,
+        "role": "staff",
+        "phone": result.phone,
+        "phoneDisplay": result.phone_display,
+        "staffName": result.staff_name,
+        "staffId": result.staff_id,
+        "specialization": result.specialization,
+        "positionTitle": result.position_title,
+    }
+
+
+@app.post("/api/staff/auth/password/set")
+def staff_auth_password_set(
+    body: PasswordSetRequest,
+    launch: dict[str, str] = Depends(vk_launch_from_header),
+):
+    _guard(body.vk_user_id, launch)
+    if body.password != body.password_confirm:
+        raise HTTPException(
+            status_code=400,
+            detail={"code": "password_mismatch", "message": "Пароли не совпадают."},
+        )
+    try:
+        result = set_staff_password(body.vk_user_id, body.phone, body.password, _cfg())
+    except StaffAuthError as error:
+        raise _handle_staff_auth_error(error) from error
+
+    return {
+        "success": True,
+        "authenticated": True,
+        "role": "staff",
+        "phone": result.phone,
+        "phoneDisplay": result.phone_display,
+        "staffName": result.staff_name,
+        "staffId": result.staff_id,
+        "specialization": result.specialization,
+        "positionTitle": result.position_title,
+    }
+
+
+@app.get("/api/staff/home")
+def staff_home(vk_user_id: int, launch: dict[str, str] = Depends(vk_launch_from_header)):
+    if vk_user_id <= 0:
+        raise HTTPException(status_code=400, detail="Некорректный vk_user_id")
+    _guard(vk_user_id, launch)
+    try:
+        return load_staff_home(vk_user_id)
+    except StaffAuthError as error:
+        raise _handle_staff_auth_error(error, protected=True) from error
+
+
+@app.get("/api/staff/settings", response_model=StaffSettingsResponse)
+def staff_settings_get(vk_user_id: int, launch: dict[str, str] = Depends(vk_launch_from_header)):
+    if vk_user_id <= 0:
+        raise HTTPException(status_code=400, detail="Некорректный vk_user_id")
+    _guard(vk_user_id, launch)
+    try:
+        return load_staff_settings(vk_user_id)
+    except StaffAuthError as error:
+        raise _handle_staff_auth_error(error, protected=True) from error
+
+
+@app.put("/api/staff/settings", response_model=StaffSettingsResponse)
+def staff_settings_put(
+    body: StaffSettingsUpdateRequest,
+    launch: dict[str, str] = Depends(vk_launch_from_header),
+):
+    _guard(body.vk_user_id, launch)
+    try:
+        return update_staff_settings(body.vk_user_id, color_scheme=body.color_scheme)
+    except StaffAuthError as error:
+        raise _handle_staff_auth_error(error, protected=True) from error
+
+
+@app.post("/api/staff/activity/clients")
+def staff_activity_clients(
+    body: StaffActivityClientsRequest,
+    launch: dict[str, str] = Depends(vk_launch_from_header),
+):
+    _guard(body.vk_user_id, launch)
+    try:
+        return load_staff_activity_clients(
+            body.vk_user_id,
+            activity_id=body.activity_id,
+            activity_date=body.activity_date,
+            config=_cfg(),
+        )
+    except StaffAuthError as error:
+        raise _handle_staff_auth_error(error, protected=True) from error
 
 
 @app.post("/api/auth/logout")

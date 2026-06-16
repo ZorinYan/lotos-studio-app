@@ -12,6 +12,8 @@ const SESSION_EXEMPT_PREFIXES = [
   '/api/auth/phone',
   '/api/auth/verify',
   '/api/auth/password',
+  '/api/staff/auth/password',
+  '/api/staff/settings',
   '/api/config/public',
   '/api/boot',
   '/api/schedule/guest-check',

@@ -276,6 +276,32 @@ class YClientsClient:
         records.sort(key=lambda item: item[0])
         return [record for _, record in records]
 
+    def get_records_for_staff(
+        self,
+        staff_id: int,
+        *,
+        start_date: date,
+        end_date: date,
+        count: int = 200,
+        page: int = 1,
+    ) -> list[dict]:
+        """Получить записи компании по конкретному сотруднику в диапазоне дат (сеансов)."""
+        payload = self._request(
+            "GET",
+            f"/records/{self.config.yclients_company_id}",
+            params={
+                "staff_id": staff_id,
+                "start_date": start_date.isoformat(),
+                "end_date": end_date.isoformat(),
+                "count": count,
+                "page": page,
+            },
+        )
+
+        if not payload.get("success"):
+            return []
+        return payload.get("data", []) if isinstance(payload.get("data", []), list) else []
+
     def client_has_active_records(self, client_id: int) -> bool:
         for record in self.get_client_records(client_id, days_back=730, count=30):
             if record.get("deleted"):
@@ -599,3 +625,22 @@ class YClientsClient:
             return parse_record_datetime(str(raw))
         except (ValueError, OSError, OverflowError):
             return None
+
+    def list_company_users(self) -> list[dict]:
+        payload = self._request(
+            "GET",
+            f"/company/{self.config.yclients_company_id}/users",
+        )
+        data = payload.get("data", [])
+        return data if isinstance(data, list) else []
+
+    def list_staff(self) -> list[dict]:
+        company_id = self.config.yclients_company_id
+        try:
+            payload = self._request("GET", f"/company/{company_id}/staff")
+        except YClientsError:
+            payload = self._request("GET", f"/staff/{company_id}/0")
+        data = payload.get("data", [])
+        if isinstance(data, dict):
+            return [data]
+        return data if isinstance(data, list) else []

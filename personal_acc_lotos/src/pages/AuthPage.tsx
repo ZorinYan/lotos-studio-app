@@ -9,13 +9,15 @@ import {
   type AuthStep,
   type AuthSessionPayload,
   type PublicConfig,
+  type UserRole,
   type VerifyResponse,
 } from '../api/auth'
+import { setStaffPassword, verifyStaffPassword } from '../api/staff'
 import { ApiError } from '../api/client'
 import type { VkUser } from '../hooks/useVkApp'
 import './AuthPage.css'
 
-type FlowStep = 'phone' | AuthStep | 'setPassword'
+type FlowStep = 'phone' | AuthStep
 
 type AuthPageProps = {
   vkUser: VkUser
@@ -42,6 +44,8 @@ export function AuthPage({
   const [passwordInput, setPasswordInput] = useState('')
   const [passwordConfirmInput, setPasswordConfirmInput] = useState('')
   const [verifiedPhone, setVerifiedPhone] = useState('')
+  const [accountType, setAccountType] = useState<UserRole>('client')
+  const [staffName, setStaffName] = useState<string | null>(null)
   const [requiresSurname, setRequiresSurname] = useState(false)
   const [error, setError] = useState<string | null>(bootError ?? null)
 
@@ -66,6 +70,17 @@ export function AuthPage({
     try {
       const result = await submitPhone(vkUser.id, phoneInput)
       setVerifiedPhone(result.phone)
+      setAccountType(result.accountType ?? 'client')
+      setStaffName(result.staffName ?? null)
+      if (result.step === 'authenticated') {
+        await onAuthenticated({
+          phone: result.phone,
+          phoneDisplay: result.phoneDisplay ?? result.phone,
+          clientName: result.clientName ?? null,
+          role: 'client',
+        })
+        return
+      }
       setRequiresSurname(result.requiresSurname)
       resetPasswordFields()
       setStep(result.step)
@@ -110,10 +125,34 @@ export function AuthPage({
     }
   }
 
+  function sessionFromStaff(result: {
+    phone: string
+    phoneDisplay: string
+    staffName: string
+    staffId: number
+    specialization?: string | null
+    positionTitle?: string | null
+  }): AuthSessionPayload {
+    return {
+      phone: result.phone,
+      phoneDisplay: result.phoneDisplay,
+      role: 'staff',
+      staffName: result.staffName,
+      staffId: result.staffId,
+      specialization: result.specialization ?? null,
+      positionTitle: result.positionTitle ?? null,
+    }
+  }
+
   async function handlePasswordSubmit() {
     setSubmitting(true)
     setError(null)
     try {
+      if (accountType === 'staff') {
+        const result = await verifyStaffPassword(vkUser.id, verifiedPhone, passwordInput)
+        await onAuthenticated(sessionFromStaff(result))
+        return
+      }
       const result = await verifyPassword(vkUser.id, verifiedPhone, passwordInput)
       await onAuthenticated(sessionFromVerify(result))
     } catch (err) {
@@ -130,6 +169,16 @@ export function AuthPage({
     setSubmitting(true)
     setError(null)
     try {
+      if (accountType === 'staff') {
+        const result = await setStaffPassword(
+          vkUser.id,
+          verifiedPhone,
+          passwordInput,
+          passwordConfirmInput,
+        )
+        await onAuthenticated(sessionFromStaff(result))
+        return
+      }
       const result = await setPassword(
         vkUser.id,
         verifiedPhone,
@@ -169,6 +218,7 @@ export function AuthPage({
     )
   }
 
+  const isStaffFlow = accountType === 'staff'
   const greeting = vkUser.first_name
     ? `${vkUser.first_name}, добро пожаловать`
     : 'Добро пожаловать'
@@ -254,9 +304,13 @@ export function AuthPage({
           }}
         >
           <p className="auth-page__step">Шаг 2</p>
-          <h2 className="auth-page__section-title">Ваш пароль</h2>
+          <h2 className="auth-page__section-title">
+            {isStaffFlow ? 'Пароль сотрудника' : 'Ваш пароль'}
+          </h2>
           <p className="auth-page__hint">
-            Введите пароль, который вы задавали при первом входе.
+            {isStaffFlow
+              ? `Вход для ${staffName ?? 'сотрудника'}. Введите пароль кабинета сотрудника.`
+              : 'Введите пароль, который вы задавали при первом входе.'}
           </p>
           <FormItem top="Пароль" htmlFor="login-password">
             <Input
@@ -294,12 +348,19 @@ export function AuthPage({
             className="auth-page__link-btn"
             disabled={submitting}
             onClick={() => {
+              if (isStaffFlow) {
+                setStep('phone')
+                setAccountType('client')
+                setStaffName(null)
+                resetPasswordFields()
+                return
+              }
               setStep('name')
               setNameInput('')
               resetPasswordFields()
             }}
           >
-            Забыли пароль? Войти по имени
+            {isStaffFlow ? 'Другой номер' : 'Забыли пароль? Войти по имени'}
           </button>
         </form>
       )}
@@ -373,10 +434,14 @@ export function AuthPage({
             void handleSetPasswordSubmit()
           }}
         >
-          <p className="auth-page__step">Регистрация</p>
-          <h2 className="auth-page__section-title">Придумайте пароль</h2>
+          <p className="auth-page__step">{isStaffFlow ? 'Первый вход' : 'Регистрация'}</p>
+          <h2 className="auth-page__section-title">
+            {isStaffFlow ? 'Пароль для кабинета сотрудника' : 'Придумайте пароль'}
+          </h2>
           <p className="auth-page__hint">
-            Задайте пароль для следующих входов. Минимум 6 символов.
+            {isStaffFlow
+              ? `Задайте пароль для ${staffName ?? 'сотрудника'}. Он понадобится при следующих входах.`
+              : 'Задайте пароль для следующих входов. Минимум 6 символов.'}
           </p>
           <FormItem top="Пароль" htmlFor="new-password">
             <Input

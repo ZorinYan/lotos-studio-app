@@ -23,6 +23,13 @@ from utils.phone import format_phone_display, normalize_phone  # noqa: E402
 from dev_impersonation import clear_session as clear_dev_session
 from dev_impersonation import get_session as get_dev_session
 from dev_impersonation import is_developer, set_session as set_dev_session
+from staff_auth_service import (
+    clear_pending_staff_auth,
+    get_staff_auth_status,
+    logout_staff,
+)
+from staff_resolver import StaffProfile, StaffResolverError, ensure_staff_profile, resolve_staff_by_phone
+from staff_storage import has_password as staff_has_password
 from utils import storage  # noqa: E402
 
 _PENDING_TTL_SEC = 600
@@ -33,21 +40,33 @@ _pending_lock = threading.Lock()
 def clear_pending_auth() -> None:
     with _pending_lock:
         _pending.clear()
+    clear_pending_staff_auth()
 
 
 @dataclass(frozen=True)
 class AuthStatus:
     authenticated: bool
+    role: Literal["client", "staff"] = "client"
     phone: str | None = None
     phone_display: str | None = None
     client_name: str | None = None
+    staff_name: str | None = None
+    staff_id: int | None = None
+    specialization: str | None = None
+    position_title: str | None = None
 
 
 @dataclass(frozen=True)
 class PhoneCheckResult:
-    step: Literal["name", "password"]
+    step: Literal["name", "password", "authenticated", "setPassword"]
     phone: str
-    requires_surname: bool
+    account_type: Literal["client", "staff"] = "client"
+    requires_surname: bool = False
+    phone_display: str | None = None
+    client_name: str | None = None
+    staff_name: str | None = None
+    specialization: str | None = None
+    position_title: str | None = None
 
 
 @dataclass(frozen=True)
@@ -121,6 +140,19 @@ def _is_authenticated_row(row: dict) -> bool:
 
 
 def get_auth_status(vk_user_id: int, config: MiniAppConfig | None = None) -> AuthStatus:
+    staff_status = get_staff_auth_status(vk_user_id)
+    if staff_status.authenticated:
+        return AuthStatus(
+            authenticated=True,
+            role="staff",
+            phone=staff_status.phone,
+            phone_display=staff_status.phone_display,
+            staff_name=staff_status.staff_name,
+            staff_id=staff_status.staff_id,
+            specialization=staff_status.specialization,
+            position_title=staff_status.position_title,
+        )
+
     if is_developer(vk_user_id):
         session = get_dev_session(vk_user_id)
         if session:
@@ -148,6 +180,18 @@ def auth_status_from_row(row: dict) -> AuthStatus:
 
 
 def get_boot_state(vk_user_id: int) -> tuple[AuthStatus, dict]:
+    staff_status = get_staff_auth_status(vk_user_id)
+    if staff_status.authenticated:
+        from staff_storage import fetch_by_vk_user_id
+        from settings_api import normalize_color_scheme
+
+        row = fetch_by_vk_user_id(vk_user_id) or {}
+        prefs = {
+            "colorScheme": normalize_color_scheme(row.get("color_scheme")),
+            "welcomeBannerSeen": True,
+        }
+        return get_auth_status(vk_user_id), prefs
+
     row = storage.get_user_auth_state(vk_user_id)
     scheme = row.get("color_scheme") or "light"
     if scheme not in ("light", "dark"):
@@ -159,6 +203,28 @@ def get_boot_state(vk_user_id: int) -> tuple[AuthStatus, dict]:
     return get_auth_status(vk_user_id), prefs
 
 
+def _begin_staff_phone_login(
+    vk_user_id: int,
+    profile: StaffProfile,
+) -> PhoneCheckResult:
+    from staff_auth_service import remember_staff_phone_step
+
+    ensure_staff_profile(profile)
+    remember_staff_phone_step(vk_user_id, profile.phone, profile)
+    step: Literal["password", "setPassword"] = (
+        "password" if staff_has_password(profile.phone) else "setPassword"
+    )
+    return PhoneCheckResult(
+        step=step,
+        phone=profile.phone,
+        account_type="staff",
+        phone_display=format_phone_display(profile.phone),
+        staff_name=profile.staff_name,
+        specialization=profile.specialization,
+        position_title=profile.position_title,
+    )
+
+
 def check_phone(vk_user_id: int, raw_phone: str, config: MiniAppConfig) -> PhoneCheckResult:
     phone = normalize_phone(raw_phone)
     if not phone:
@@ -166,6 +232,15 @@ def check_phone(vk_user_id: int, raw_phone: str, config: MiniAppConfig) -> Phone
             "invalid_phone",
             "Не удалось распознать номер. Попробуйте, например: 89991234567",
         )
+
+    if not is_developer(vk_user_id):
+        try:
+            staff_profile = resolve_staff_by_phone(phone, config)
+        except StaffResolverError as error:
+            raise AuthError(error.code, str(error)) from error
+
+        if staff_profile:
+            return _begin_staff_phone_login(vk_user_id, staff_profile)
 
     profile = _fetch_client_profile(phone, config)
     if not profile:
@@ -175,14 +250,26 @@ def check_phone(vk_user_id: int, raw_phone: str, config: MiniAppConfig) -> Phone
             f"Если вы ещё не записывались — оформите первую запись онлайн: {config.yclients_booking_url}",
         )
 
+    if is_developer(vk_user_id):
+        client_name = _client_name(profile)
+        set_dev_session(vk_user_id, phone, client_name)
+        return PhoneCheckResult(
+            step="authenticated",
+            phone=phone,
+            account_type="client",
+            phone_display=format_phone_display(phone),
+            client_name=client_name,
+        )
+
     _remember_phone_step(vk_user_id, phone, profile)
 
-    if not is_developer(vk_user_id) and storage.has_password_for_phone(phone):
+    if storage.has_password_for_phone(phone):
         return PhoneCheckResult(step="password", phone=phone, requires_surname=False)
 
     return PhoneCheckResult(
         step="name",
         phone=phone,
+        account_type="client",
         requires_surname=client_has_surname(profile),
     )
 
@@ -312,6 +399,7 @@ def logout(vk_user_id: int) -> None:
     from client_cache import invalidate_client_cache
 
     _forget_phone_step(vk_user_id)
+    logout_staff(vk_user_id)
     invalidate_client_cache(vk_user_id=vk_user_id)
     if is_developer(vk_user_id):
         clear_dev_session(vk_user_id)
