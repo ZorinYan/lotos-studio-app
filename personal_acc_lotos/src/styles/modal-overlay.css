@@ -1,0 +1,11 @@
+.lotos-modal {
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: none;
+}
+
+.lotos-modal__sheet {
+  touch-action: pan-y;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}

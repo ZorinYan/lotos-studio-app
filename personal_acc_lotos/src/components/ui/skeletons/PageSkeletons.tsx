@@ -59,3 +59,17 @@ export function RecordsPageSkeleton() {
     </div>
   )
 }
+
+export function SettingsPageSkeleton() {
+  return (
+    <div className="lotos-skeleton-block" aria-hidden="true">
+      <Bone style={{ width: 180, height: 14, marginBottom: 8 }} />
+      <Bone className="lotos-skeleton--card settings-skeleton__section" />
+      <Bone className="lotos-skeleton--card settings-skeleton__section" />
+      <Bone className="lotos-skeleton--card settings-skeleton__section" />
+      <Bone className="lotos-skeleton--card settings-skeleton__section--tall" />
+      <Bone className="lotos-skeleton--card settings-skeleton__section--tall" />
+      <Bone style={{ width: '100%', height: 44, borderRadius: 999 }} />
+    </div>
+  )
+}

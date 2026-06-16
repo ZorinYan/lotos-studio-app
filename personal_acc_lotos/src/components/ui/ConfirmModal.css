@@ -22,6 +22,7 @@
   max-width: 360px;
   padding: var(--lotos-space-lg);
   animation: confirm-modal-in 0.22s ease-out;
+  touch-action: auto;
 }
 
 @keyframes confirm-modal-in {

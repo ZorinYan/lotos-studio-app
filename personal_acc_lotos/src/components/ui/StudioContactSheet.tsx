@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import {
   buildStudioContactMessage,
   STUDIO_CONTACT_TOPICS,
   type StudioContactContext,
   type StudioContactTopic,
 } from '../../content/studioGuide'
+import { useModalOverlay } from '../../hooks/useModalOverlay'
 import { buildVkGroupMessagesUrl, copyVkText, openVkUrl } from '../../vkBridge'
 import './StudioContactSheet.css'
 
@@ -23,6 +24,8 @@ export function StudioContactSheet({
   onClose,
   onNotice,
 }: StudioContactSheetProps) {
+  const sheetRef = useRef<HTMLDivElement>(null)
+  useModalOverlay(onClose, sheetRef)
   const topicMeta = useMemo(
     () => STUDIO_CONTACT_TOPICS.find((item) => item.id === topic),
     [topic],
@@ -61,14 +64,14 @@ export function StudioContactSheet({
   }
 
   return (
-    <div className="studio-contact-sheet" role="dialog" aria-modal="true" aria-labelledby="studio-contact-sheet-title">
+    <div className="studio-contact-sheet lotos-modal" role="dialog" aria-modal="true" aria-labelledby="studio-contact-sheet-title">
       <button
         type="button"
         className="studio-contact-sheet__backdrop"
         aria-label="Закрыть"
         onClick={onClose}
       />
-      <div className="studio-contact-sheet__panel lotos-card">
+      <div ref={sheetRef} className="studio-contact-sheet__panel lotos-modal__sheet lotos-card">
         <div className="studio-contact-sheet__handle" aria-hidden="true" />
         <button
           type="button"

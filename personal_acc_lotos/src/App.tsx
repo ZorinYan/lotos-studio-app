@@ -62,12 +62,13 @@ function AppContent() {
     try {
       const settings = await fetchSettings(userId)
       setFavoriteTrainerId(settings.favoriteTrainer?.id ?? null)
+      setColorScheme(settings.colorScheme)
       return settings
     } catch {
       setFavoriteTrainerId(null)
       return null
     }
-  }, [])
+  }, [setColorScheme])
 
   const applySession = useCallback((status: AuthStatus) => {
     setAuthenticated(status.authenticated)
@@ -150,11 +151,13 @@ function AppContent() {
       setGuestSchedule(false)
       setBootError(null)
       setScreen('home')
-      void loadUserSettings(vkUser.id).then((settings) => {
+      void (async () => {
+        clearBootCache(vkUser.id)
+        const settings = await loadUserSettings(vkUser.id)
         if (settings && !settings.welcomeBannerSeen) {
           setWelcomeOpen(true)
         }
-      })
+      })()
       return
     }
 
@@ -167,6 +170,7 @@ function AppContent() {
         setScreen('auth')
         return
       }
+      setColorScheme(boot.prefs.colorScheme)
       await loadUserSettings(vkUser.id)
       applyUserPrefs(boot.prefs, { showWelcome: true })
       setScreen('home')

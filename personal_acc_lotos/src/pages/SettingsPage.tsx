@@ -1,4 +1,4 @@
-import { ScreenSpinner, Snackbar, Switch } from '@vkontakte/vkui'
+import { Snackbar, Switch } from '@vkontakte/vkui'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { fetchAbonements } from '../api/abonement'
 import { clearBootCache } from '../api/auth'
@@ -8,6 +8,7 @@ import { ApiError } from '../api/client'
 import { AppHeader } from '../components/AppHeader'
 import { ConfirmModal } from '../components/ui/ConfirmModal'
 import { FaqSection } from '../components/ui/FaqSection'
+import { SettingsPageSkeleton } from '../components/ui/skeletons/PageSkeletons'
 import { StudioContactSection } from '../components/ui/StudioContactSection'
 import { useLotosTheme } from '../hooks/useLotosTheme'
 import {
@@ -58,7 +59,6 @@ export function SettingsPage({
       setNotificationsEnabled(
         settings.notificationsEnabled || resolveInitialNotificationsEnabled(),
       )
-      setColorScheme(settings.colorScheme)
       setTrainers(filters.trainers)
       setNotificationsAvailable(
         isVkEnvironment() && import.meta.env.VITE_SKIP_VK_BRIDGE !== 'true',
@@ -72,7 +72,7 @@ export function SettingsPage({
     } finally {
       setLoading(false)
     }
-  }, [vkUserId, setColorScheme])
+  }, [vkUserId])
 
   useEffect(() => {
     void load()
@@ -163,9 +163,7 @@ export function SettingsPage({
 
       <main className="settings-page__content">
         {loading ? (
-          <div className="settings-page__loading">
-            <ScreenSpinner />
-          </div>
+          <SettingsPageSkeleton />
         ) : (
           <>
             {phoneDisplay && (

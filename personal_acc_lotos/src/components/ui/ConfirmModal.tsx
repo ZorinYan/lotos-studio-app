@@ -1,3 +1,4 @@
+import { useModalOverlay } from '../../hooks/useModalOverlay'
 import './ConfirmModal.css'
 
 type ConfirmModalProps = {
@@ -21,9 +22,11 @@ export function ConfirmModal({
   danger = false,
   loading = false,
 }: ConfirmModalProps) {
+  useModalOverlay(onClose, undefined, { swipeToClose: false })
+
   return (
     <div
-      className="confirm-modal"
+      className="confirm-modal lotos-modal"
       role="dialog"
       aria-modal="true"
       aria-labelledby="confirm-modal-title"

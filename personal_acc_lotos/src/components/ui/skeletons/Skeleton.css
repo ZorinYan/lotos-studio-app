@@ -101,3 +101,11 @@
 .cabinet-skeleton__chart {
   height: 160px;
 }
+
+.settings-skeleton__section {
+  height: 132px;
+}
+
+.settings-skeleton__section--tall {
+  height: 180px;
+}

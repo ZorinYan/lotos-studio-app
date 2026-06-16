@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
+import { useModalOverlay } from '../../hooks/useModalOverlay'
 import type { RebookPrefs, ScheduleClass } from '../../types/schedule'
 import { ScheduleClassCard } from './ScheduleClassCard'
 import { ScheduleClassModal } from './ScheduleClassModal'
@@ -23,13 +24,16 @@ export function RebookModal({
   onBooked,
   onError,
 }: RebookModalProps) {
+  const sheetRef = useRef<HTMLDivElement>(null)
   const [selectedClass, setSelectedClass] = useState<ScheduleClass | null>(null)
+
+  useModalOverlay(onClose, sheetRef)
 
   return (
     <>
-      <div className="rebook-modal" role="dialog" aria-modal="true" aria-labelledby="rebook-modal-title">
+      <div className="rebook-modal lotos-modal" role="dialog" aria-modal="true" aria-labelledby="rebook-modal-title">
         <button type="button" className="rebook-modal__backdrop" aria-label="Закрыть" onClick={onClose} />
-        <div className="rebook-modal__sheet lotos-card">
+        <div ref={sheetRef} className="rebook-modal__sheet lotos-modal__sheet lotos-card">
           <div className="rebook-modal__handle" aria-hidden="true" />
           <button type="button" className="rebook-modal__close" onClick={onClose} aria-label="Закрыть">
             ×

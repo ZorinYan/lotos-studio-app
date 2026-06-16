@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { cancelRecord, fetchRescheduleSlots } from '../../api/records'
 import { ApiError } from '../../api/client'
+import { useModalOverlay } from '../../hooks/useModalOverlay'
 import type { CancelRecordResult, RescheduleSlotsData, UserRecord } from '../../types/records'
 import { parseAttendance } from '../../utils/format'
 import { AddToCalendarButton } from './AddToCalendarButton'
@@ -26,6 +27,7 @@ export function RecordModal({
   onCancelled,
   onError,
 }: RecordModalProps) {
+  const sheetRef = useRef<HTMLDivElement>(null)
   const [mode, setMode] = useState<ModalMode>('details')
   const [cancelling, setCancelling] = useState(false)
   const [rescheduleLoading, setRescheduleLoading] = useState(false)
@@ -42,6 +44,8 @@ export function RecordModal({
     }
     onClose()
   }
+
+  useModalOverlay(handleClose, sheetRef)
 
   const handleCancel = async () => {
     setCancelling(true)
@@ -85,7 +89,7 @@ export function RecordModal({
   }
 
   return (
-    <div className="record-modal" role="dialog" aria-modal="true" aria-labelledby="record-modal-title">
+    <div className="record-modal lotos-modal" role="dialog" aria-modal="true" aria-labelledby="record-modal-title">
       <button
         type="button"
         className="record-modal__backdrop"
@@ -93,7 +97,7 @@ export function RecordModal({
         onClick={handleClose}
         disabled={cancelling || rescheduleLoading}
       />
-      <div className="record-modal__sheet lotos-card">
+      <div ref={sheetRef} className="record-modal__sheet lotos-modal__sheet lotos-card">
         <div className="record-modal__handle" aria-hidden="true" />
         <button
           type="button"

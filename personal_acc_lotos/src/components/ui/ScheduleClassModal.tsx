@@ -1,11 +1,12 @@
 import { FormItem, Input } from '@vkontakte/vkui'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import {
   bookScheduleClass,
   checkBookingEligibility,
   checkGuestBooking,
 } from '../../api/schedule'
 import { ApiError } from '../../api/client'
+import { useModalOverlay } from '../../hooks/useModalOverlay'
 import type { BookScheduleResult, BookingEligibility, ScheduleClass } from '../../types/schedule'
 import { formatMoney } from '../../utils/format'
 import { AddToCalendarButton } from './AddToCalendarButton'
@@ -46,6 +47,7 @@ export function ScheduleClassModal({
   onAuthenticated,
   onError,
 }: ScheduleClassModalProps) {
+  const sheetRef = useRef<HTMLDivElement>(null)
   const [mode, setMode] = useState<ModalMode>('details')
   const [booking, setBooking] = useState(false)
   const [result, setResult] = useState<BookScheduleResult | null>(null)
@@ -72,6 +74,8 @@ export function ScheduleClassModal({
     }
     onClose()
   }
+
+  useModalOverlay(handleClose, sheetRef)
 
   const guestFormComplete =
     phoneInput.trim().length > 0
@@ -146,7 +150,7 @@ export function ScheduleClassModal({
   }
 
   return (
-    <div className="schedule-modal" role="dialog" aria-modal="true" aria-labelledby="schedule-modal-title">
+    <div className="schedule-modal lotos-modal" role="dialog" aria-modal="true" aria-labelledby="schedule-modal-title">
       <button
         type="button"
         className="schedule-modal__backdrop"
@@ -154,7 +158,7 @@ export function ScheduleClassModal({
         onClick={handleClose}
         disabled={booking}
       />
-      <div className="schedule-modal__sheet lotos-card">
+      <div ref={sheetRef} className="schedule-modal__sheet lotos-modal__sheet lotos-card">
         <div className="schedule-modal__handle" aria-hidden="true" />
         <button
           type="button"

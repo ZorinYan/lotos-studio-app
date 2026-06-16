@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { rescheduleRecord } from '../../api/records'
 import { ApiError } from '../../api/client'
+import { useModalOverlay } from '../../hooks/useModalOverlay'
 import type { RescheduleResult, RescheduleSlotsData } from '../../types/records'
 import type { ScheduleClass } from '../../types/schedule'
 import { ScheduleClassCard } from './ScheduleClassCard'
@@ -23,6 +24,7 @@ export function RescheduleModal({
   onRescheduled,
   onError,
 }: RescheduleModalProps) {
+  const sheetRef = useRef<HTMLDivElement>(null)
   const [mode, setMode] = useState<ModalMode>('pick')
   const [selectedClass, setSelectedClass] = useState<ScheduleClass | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -56,8 +58,10 @@ export function RescheduleModal({
     onClose()
   }
 
+  useModalOverlay(handleClose, sheetRef)
+
   return (
-    <div className="reschedule-modal" role="dialog" aria-modal="true" aria-labelledby="reschedule-modal-title">
+    <div className="reschedule-modal lotos-modal" role="dialog" aria-modal="true" aria-labelledby="reschedule-modal-title">
       <button
         type="button"
         className="reschedule-modal__backdrop"
@@ -65,7 +69,7 @@ export function RescheduleModal({
         onClick={handleClose}
         disabled={submitting}
       />
-      <div className="reschedule-modal__sheet lotos-card">
+      <div ref={sheetRef} className="reschedule-modal__sheet lotos-modal__sheet lotos-card">
         <div className="reschedule-modal__handle" aria-hidden="true" />
         <button
           type="button"

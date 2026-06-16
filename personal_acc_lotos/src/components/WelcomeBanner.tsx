@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useModalOverlay } from '../hooks/useModalOverlay'
 import './WelcomeBanner.css'
 
 type WelcomeBannerProps = {
@@ -8,21 +8,12 @@ type WelcomeBannerProps = {
 }
 
 export function WelcomeBanner({ clientName, studioName, onClose }: WelcomeBannerProps) {
+  useModalOverlay(onClose, undefined, { swipeToClose: false })
   const firstName = clientName?.split(' ')[0]
   const greeting = firstName ? `${firstName}, добро пожаловать!` : 'Добро пожаловать!'
 
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        onClose()
-      }
-    }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [onClose])
-
   return (
-    <div className="welcome-banner" role="dialog" aria-modal="true" aria-labelledby="welcome-banner-title">
+    <div className="welcome-banner lotos-modal" role="dialog" aria-modal="true" aria-labelledby="welcome-banner-title">
       <button
         type="button"
         className="welcome-banner__backdrop"

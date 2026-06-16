@@ -1,4 +1,6 @@
+import { useRef } from 'react'
 import type { AbonementUsageVisit, CabinetAbonement } from '../../types/cabinet'
+import { useModalOverlay } from '../../hooks/useModalOverlay'
 import { formatMoney, parseAbonementStatus, pluralizeLessons } from '../../utils/format'
 import './AbonementModal.css'
 
@@ -9,12 +11,14 @@ type AbonementModalProps = {
 }
 
 export function AbonementModal({ item, usageVisits, onClose }: AbonementModalProps) {
+  const sheetRef = useRef<HTMLDivElement>(null)
+  useModalOverlay(onClose, sheetRef)
   const status = parseAbonementStatus(item.status)
 
   return (
-    <div className="abonement-modal" role="dialog" aria-modal="true" aria-labelledby="abonement-modal-title">
+    <div className="abonement-modal lotos-modal" role="dialog" aria-modal="true" aria-labelledby="abonement-modal-title">
       <button type="button" className="abonement-modal__backdrop" aria-label="Закрыть" onClick={onClose} />
-      <div className="abonement-modal__sheet lotos-card">
+      <div ref={sheetRef} className="abonement-modal__sheet lotos-modal__sheet lotos-card">
         <div className="abonement-modal__handle" aria-hidden="true" />
         <button type="button" className="abonement-modal__close" onClick={onClose} aria-label="Закрыть">
           ×
